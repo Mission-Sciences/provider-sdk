@@ -1,9 +1,22 @@
-# Token Marketplace Platform
+# Application Marketplace Platform
 ## Technical Documentation: Provider SDK Implementation
 
-**Focus**: Building the JavaScript/TypeScript Provider SDK with Vite
-**Backend**: Go API (separate repository)
-**Audience**: SDK developers and app providers
+**Focus**: Building the JavaScript/TypeScript Provider SDK with Vite  
+**Backend**: gw-api (Go Lambda functions)  
+**Audience**: SDK developers and app providers  
+**Primary Reference**: `/gw-docs/PRPs/` (MVP requirements)
+
+---
+
+## 🔴 Important: PRP Alignment
+
+This SDK aligns with:
+- **PRPs**: `/gw-docs/PRPs/PRP-002*` (Sessions management system)
+- **API Spec**: `/gw-docs/features/application-marketplace/`
+- **Backend**: `/gw-api/starting_point.md`
+
+**MVP Scope**: Passive JWT validation via JWKS (no heartbeats required)  
+**Future**: Active SDK with heartbeats, validation endpoints (Phase 2+)
 
 ---
 
@@ -61,40 +74,60 @@
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### JWT Session Flow
+### JWT Session Flow (Per PRP-002B)
 
+**MVP Flow** (Current):
 ```
-1. User clicks "Start Session" in Marketplace PWA
+1. User clicks "Create Session" in Marketplace PWA
    ↓
-2. Marketplace calls Go backend: POST /sessions
+2. Marketplace calls: POST /sessions
+   Body: { application_id, duration_minutes }
    ↓
-3. Go backend creates session record and generates JWT
-   JWT contains: {
-     jti: "unique-session-id",
-     sub: "user-id",
-     provider_id: "app-provider-id",
+3. Go backend:
+   - Creates session record in DynamoDB
+   - Generates JWT with RS256 (2048-bit key)
+   - Deducts tokens from user balance
+   JWT Claims: {
+     session_id: "sess-abc123",
+     user_id: "user-456",
+     organization_id: "org-789",
+     application_id: "app-xyz",
      exp: timestamp + duration,
-     iat: timestamp,
-     tokens_allocated: 500,
-     return_url: "https://marketplace.com/session/complete"
+     iat: timestamp
    }
+   Response: { session_id, session_jwt, launch_url, expires_at, tokens_consumed }
    ↓
-4. Marketplace redirects to provider app:
-   https://provider-app.com/?session=<JWT_TOKEN>
+4. Marketplace opens new tab with gwSession parameter:
+   https://provider-app.com/?gwSession=<JWT_TOKEN>
    ↓
-5. Provider app SDK:
-   - Extracts JWT from URL
-   - Calls Go backend: POST /sessions/validate
-   - Starts countdown timer
+5. Provider app (MVP - Passive Validation):
+   - Extracts gwSession JWT from URL
+   - Fetches public key from: GET /.well-known/jwks.json
+   - Validates JWT signature (RS256)
+   - Checks expiration (exp claim)
+   - Extracts session claims
+   - Shows content if valid
+   
+6. User manages session in "My Sessions" page:
+   - View countdown timer (client-side calculation)
+   - Relaunch application (same JWT while active)
+   - Revoke: DELETE /sessions/{id}
+   - Extend: PUT /sessions/{id}/renew
+```
+
+**Future Enhancement** (Phase 2+):
+```
+5. Provider app SDK (Active Validation):
+   - Validates JWT via: POST /sessions/validate
+   - Sends heartbeat: POST /sessions/{id}/heartbeat (every 30s)
+   - Starts countdown timer with backend sync
    - Shows warning at 5 minutes remaining
-   - Auto-redirects when time expires
+   - Handles session.ended webhook
    ↓
-6. User redirected back to marketplace:
-   https://marketplace.com/session/complete?session_id=<ID>
-   ↓
-7. Marketplace calls Go backend: POST /sessions/{id}/complete
-   ↓
-8. Go backend deducts tokens and marks session complete
+6. Session completion:
+   - POST /sessions/{id}/complete
+   - Backend reconciles actual usage
+   - Refunds unused tokens
 ```
 
 ---
@@ -342,7 +375,21 @@ export default defineConfig({
 
 ---
 
+## MVP Scope & Provider Integration
+
+**For MVP**, third-party providers can integrate with minimal code using standard JWT libraries. See `/gw-docs/SDK-INTEGRATION.md` for detailed provider integration examples in Node.js, Python, PHP, Go, etc.
+
+**This document focuses on building the optional SDK package** for providers who want advanced features like:
+- Pre-built UI components (countdown timer, warning modals)
+- Automatic timer management
+- Event hooks for session lifecycle
+- **Future**: Heartbeat integration, validation helpers
+
+---
+
 ## Core SDK Implementation
+
+**Target**: npm package `@marketplace/provider-sdk` for JavaScript/TypeScript applications
 
 ### src/types/index.ts
 
@@ -357,13 +404,12 @@ export interface SDKConfig {
 }
 
 export interface SessionData {
-  sessionId: string;
-  userId: string;
-  providerId: string;
-  tokensAllocated: number;
-  durationSeconds: number;
-  expiresAt: number;
-  returnUrl: string;
+  sessionId: string;          // JWT claim: session_id
+  userId: string;             // JWT claim: user_id
+  organizationId: string;     // JWT claim: organization_id (per PRP-002B)
+  applicationId: string;      // JWT claim: application_id (per PRP-002B)
+  exp: number;                // JWT claim: expires_at (Unix timestamp)
+  iat: number;                // JWT claim: issued_at (Unix timestamp)
 }
 
 export interface ModalStyles {
@@ -471,6 +517,8 @@ export class JWTParser {
 
 ### src/core/SessionValidator.ts
 
+**Note**: This class implements **Phase 2+ features** (POST /sessions/validate, heartbeat). For MVP, providers only need JWKS validation (see above).
+
 ```typescript
 import { httpClient } from '../utils/http';
 import { SessionData, SDKError } from '../types';
@@ -486,7 +534,8 @@ export class SessionValidator {
   }
 
   /**
-   * Validate session with Go backend
+   * Validate session with Go backend (FUTURE - Phase 2+)
+   * MVP uses passive JWKS validation instead
    */
   async validate(jti: string, token: string): Promise<SessionData> {
     this.logger.debug('Validating session:', jti);
@@ -520,7 +569,8 @@ export class SessionValidator {
   }
 
   /**
-   * Send heartbeat to backend
+   * Send heartbeat to backend (FUTURE - Phase 2+)
+   * MVP does not require heartbeats
    */
   async heartbeat(sessionId: string, token: string): Promise<number> {
     this.logger.debug('Sending heartbeat:', sessionId);
@@ -742,28 +792,29 @@ export class MarketplaceSDK {
     this.logger.info('Initializing session...');
 
     try {
-      // Extract JWT from URL
-      this.jwtToken = extractTokenFromURL('session');
+      // Extract JWT from URL (per PRP-002B: parameter is 'gwSession')
+      this.jwtToken = extractTokenFromURL('gwSession');
       if (!this.jwtToken) {
         throw new SDKError(
-          'No session token found in URL',
+          'No gwSession token found in URL',
           'MISSING_TOKEN'
         );
       }
 
-      // Decode JWT to get session ID
+      // Decode JWT to get session ID (per PRP-002B: claim is 'session_id')
       const payload = JWTParser.decode(this.jwtToken);
-      const jti = payload.jti;
+      const sessionId = payload.session_id;
 
-      if (!jti) {
+      if (!sessionId) {
         throw new SDKError(
-          'JWT missing JTI claim',
+          'JWT missing session_id claim',
           'INVALID_JWT'
         );
       }
 
-      // Validate session with backend
-      this.sessionData = await this.validator.validate(jti, this.jwtToken);
+      // Validate session with backend (FUTURE - Phase 2+)
+      // MVP: Session is already validated via JWKS signature check
+      this.sessionData = await this.validator.validate(sessionId, this.jwtToken);
 
       // Calculate remaining time
       const now = Date.now();
@@ -2132,103 +2183,118 @@ const {
 
 ## Go Backend Implementation Requirements
 
-The SDK requires these Go backend endpoints to be implemented:
+### MVP Endpoints (Per PRP-002D) ✅
 
-### Core Session Endpoints (Required for MVP)
+**Backend developers: See `/gw-api/starting_point.md` for full implementation details**
+
 ```go
-POST   /api/v1/sessions                      // Create session (marketplace calls)
-POST   /api/v1/sessions/validate             // Validate JWT (SDK calls)
-POST   /api/v1/sessions/{id}/complete        // Complete session (marketplace calls)
-POST   /api/v1/sessions/{id}/heartbeat       // Heartbeat (SDK calls)
-GET    /api/v1/keys/public                   // Get public key for JWT verification
+// Session CRUD (Required for MVP)
+POST   /sessions                             // Create session + JWT (marketplace)
+  Body: { application_id, duration_minutes }
+  Returns: { session_id, session_jwt, launch_url, expires_at, tokens_consumed }
+
+GET    /users/:userId/sessions               // List user sessions (marketplace)
+  Query: ?status=active|expired|revoked
+  
+GET    /sessions/:id                         // Get single session
+
+DELETE /sessions/:id                         // Revoke session (user action)
+
+PUT    /sessions/:id/renew                   // Extend session duration
+  Body: { additional_minutes }
+
+// Public Key Distribution (Required for passive validation)
+GET    /.well-known/jwks.json                // JWKS endpoint (no auth required)
+  Returns: RSA public key in JWKS format for RS256 JWT verification
 ```
 
-### Provider Management Endpoints (Week 4+)
+### Internal Platform Endpoints (Not for Providers)
+
+**These are called by marketplace/admin, NOT by third-party provider applications**
+
 ```go
-POST   /api/v1/providers                     // Register new provider
-GET    /api/v1/providers/{id}                // Get provider details
-PATCH  /api/v1/providers/{id}                // Update provider settings
-GET    /api/v1/providers/{id}/stats          // Get provider statistics
-GET    /api/v1/providers/{id}/sessions       // List provider sessions
+// Provider Registry (Internal - Admin/Marketplace only)
+GET    /providers                            // List all providers
+GET    /providers/{id}                       // Get provider details
+POST   /providers                            // Create provider
+PUT    /providers/{id}                       // Update provider
+DELETE /providers/{id}                       // Delete provider
+GET    /providers/{id}/resources             // List provider resources
+POST   /providers/{id}/resources             // Create resource
+PUT    /providers/{id}/resources/{id}        // Update resource
+DELETE /providers/{id}/resources/{id}        // Delete resource
+
+// Token Management (Internal - Marketplace only)
+GET    /tokens                               // List token records
+GET    /tokens/balance                       // Get token balance
+POST   /tokens                               // Create token record
 ```
 
-### Webhook Endpoints (Week 4)
+---
+
+### Future: Provider Integration Endpoints (Phase 2+) 🔮
+
+**These endpoints will be available to provider applications for advanced SDK features**
+
+#### Active Session Management
 ```go
-POST   /api/v1/providers/{id}/webhooks       // Register webhook URL
-GET    /api/v1/providers/{id}/webhooks       // List registered webhooks
-DELETE /api/v1/providers/{id}/webhooks/{wid} // Delete webhook
-POST   /api/v1/webhooks/test                 // Test webhook delivery
+POST   /sessions/validate                    // Backend JWT validation
+  Body: { session_jwt: "eyJ..." }
+  Response: { valid: true, session: {...}, remaining_seconds: 450 }
+  Use: Alternative to JWKS validation, real-time backend check
+
+POST   /sessions/{id}/heartbeat              // Heartbeat tracking
+  Body: { timestamp: 1699200000, active: true }
+  Response: { remaining_seconds: 420, status: "active" }
+  Use: Track active usage, every 30s, enables detailed analytics
+
+POST   /sessions/{id}/complete               // Session completion
+  Body: { actual_usage_minutes: 25, metadata: {...} }
+  Response: { tokens_refunded: 50, final_cost: 125 }
+  Use: End session early with potential refund
 ```
 
-### Session Extension Endpoints (Week 4)
+#### Webhook Management (Providers register their URLs)
 ```go
-POST   /api/v1/sessions/{id}/extend          // Extend session duration
-GET    /api/v1/sessions/{id}/extensions      // Get extension history
+POST   /providers/{id}/webhooks              // Register webhook URL
+  Body: { url: "https://yourapp.com/webhooks", events: ["session.ended", "session.revoked"] }
+  Response: { webhook_id, secret }
+  
+GET    /providers/{id}/webhooks              // List your webhooks
+DELETE /providers/{id}/webhooks/{webhook_id} // Delete webhook
+POST   /webhooks/test                        // Test webhook delivery
 ```
 
-### Analytics Endpoints (Week 5+)
-```go
-GET    /api/v1/providers/{id}/analytics/sessions     // Session analytics
-GET    /api/v1/providers/{id}/analytics/revenue      // Revenue analytics
-GET    /api/v1/providers/{id}/analytics/users        // User analytics
+**Webhook Event Types**:
+- `session.started` - New session created for your app
+- `session.warning` - 5 minutes remaining
+- `session.ended` - Session expired
+- `session.revoked` - User manually revoked
+- `session.extended` - Duration increased
+
+**Webhook Payload Example**:
+```json
+{
+  "event": "session.ended",
+  "session_id": "sess-abc123",
+  "application_id": "app-xyz",
+  "user_id": "user-456",
+  "timestamp": 1699200000,
+  "reason": "expired"
+}
 ```
 
-### Backend Database Schema Extensions
+#### Analytics (Provider's own data only)
+```go
+GET    /providers/{id}/analytics/sessions    // Your app's session stats
+  Query: ?start_date=2024-01-01&end_date=2024-01-31
+  Response: { total_sessions, avg_duration, unique_users }
 
-```sql
--- Webhook configurations
-CREATE TABLE webhooks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    provider_id UUID NOT NULL REFERENCES providers(id),
-    url TEXT NOT NULL,
-    events TEXT[] NOT NULL,  -- Array of event types to subscribe to
-    secret TEXT NOT NULL,     -- HMAC secret for signature
-    enabled BOOLEAN DEFAULT true,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
+GET    /providers/{id}/analytics/revenue     // Your revenue/token stats
+  Response: { tokens_earned, sessions_count, avg_tokens_per_session }
 
--- Webhook delivery attempts
-CREATE TABLE webhook_deliveries (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    webhook_id UUID NOT NULL REFERENCES webhooks(id),
-    event_type TEXT NOT NULL,
-    payload JSONB NOT NULL,
-    response_code INTEGER,
-    response_body TEXT,
-    attempt_count INTEGER DEFAULT 1,
-    delivered_at TIMESTAMPTZ,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Session extensions
-CREATE TABLE session_extensions (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_id UUID NOT NULL REFERENCES sessions(id),
-    additional_seconds INTEGER NOT NULL,
-    tokens_deducted INTEGER NOT NULL,
-    extended_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Heartbeat logs (optional, for debugging)
-CREATE TABLE session_heartbeats (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    session_id UUID NOT NULL REFERENCES sessions(id),
-    timestamp TIMESTAMPTZ DEFAULT NOW(),
-    active BOOLEAN DEFAULT true
-);
-
--- Provider analytics (materialized view updated periodically)
-CREATE MATERIALIZED VIEW provider_analytics AS
-SELECT 
-    provider_id,
-    DATE_TRUNC('day', created_at) as date,
-    COUNT(*) as session_count,
-    SUM(tokens_allocated) as tokens_consumed,
-    AVG(duration_limit_seconds) as avg_session_duration,
-    COUNT(DISTINCT user_id) as unique_users
-FROM sessions
-GROUP BY provider_id, DATE_TRUNC('day', created_at);
+GET    /providers/{id}/analytics/users       // Your user engagement
+  Response: { active_users, returning_users, session_frequency }
 ```
 
 ---
