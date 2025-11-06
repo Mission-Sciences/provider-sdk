@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "context7": {
+      "command": "uv",
+      "args": ["run", "--script", ".claude/mcp_servers/context7_server.py"],
+      "transport": "stdio"
+    },
+    "sequential": {
+      "command": "uv",
+      "args": ["run", "--script", ".claude/mcp_servers/sequential_server.py"],
+      "transport": "stdio"
+    },
+    "magic": {
+      "command": "uv",
+      "args": ["run", "--script", ".claude/mcp_servers/magic_server.py"],
+      "transport": "stdio"
+    }
+  }
+}

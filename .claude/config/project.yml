@@ -1,0 +1,20 @@
+# Project Configuration
+# This file contains project-specific settings for code-agent
+
+project:
+  name: code-agent
+  version: "1.0.0"
+  type: development
+
+integration:
+  level: enhanced
+  components:
+    - claude_code
+    - prp_framework
+    - mcp_servers
+    - hooks
+
+settings:
+  auto_update: true
+  backup_enabled: true
+  validation_enabled: true

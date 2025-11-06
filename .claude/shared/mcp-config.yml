@@ -1,0 +1,219 @@
+schema_version: "1.0"
+last_updated: "2024-01-01T00:00:00"
+
+servers:
+  context7:
+    description: "Context7 MCP server for documentation and context fetching, research assistance, and knowledge base integration"
+    capabilities:
+      - documentation
+      - resources
+      - context
+      - research
+      - knowledge_base
+    transport:
+      type: stdio
+      command: python
+      timeout: 30
+      retry_count: 3
+      retry_delay: 1.0
+      env_vars:
+        PYTHONPATH: "/Users/patrick.henry/dev/code-agent"
+      args:
+        - "/Users/patrick.henry/dev/code-agent/prp_framework/mcp/context7.py"
+    enabled: true
+    priority: 1
+    health_check_interval: 300
+    auto_restart: true
+    dependencies: []
+    tags:
+      - documentation
+      - research
+      - knowledge
+    created_at: "2024-01-01T00:00:00"
+    updated_at: "2024-01-01T00:00:00"
+
+  sequential:
+    description: "Sequential MCP server for complex analysis, step-by-step thinking, and structured reasoning processes"
+    capabilities:
+      - analysis
+      - thinking
+      - sequential_processing
+      - reasoning
+      - problem_solving
+    transport:
+      type: stdio
+      command: python
+      timeout: 60
+      retry_count: 2
+      retry_delay: 2.0
+      env_vars:
+        PYTHONPATH: "/Users/patrick.henry/dev/code-agent"
+      args:
+        - "/Users/patrick.henry/dev/code-agent/prp_framework/mcp/sequential.py"
+    enabled: true
+    priority: 1
+    health_check_interval: 600
+    auto_restart: true
+    dependencies: []
+    tags:
+      - analysis
+      - reasoning
+      - thinking
+    created_at: "2024-01-01T00:00:00"
+    updated_at: "2024-01-01T00:00:00"
+
+  magic:
+    description: "Magic MCP server for UI component generation, template creation, and frontend code assistance"
+    capabilities:
+      - ui_generation
+      - components
+      - templates
+      - frontend_assistance
+      - code_generation
+    transport:
+      type: stdio
+      command: python
+      timeout: 30
+      retry_count: 3
+      retry_delay: 1.0
+      env_vars:
+        PYTHONPATH: "/Users/patrick.henry/dev/code-agent"
+      args:
+        - "/Users/patrick.henry/dev/code-agent/prp_framework/mcp/magic.py"
+    enabled: true
+    priority: 2
+    health_check_interval: 300
+    auto_restart: true
+    dependencies:
+      - context7
+    tags:
+      - ui
+      - generation
+      - frontend
+      - components
+    created_at: "2024-01-01T00:00:00"
+    updated_at: "2024-01-01T00:00:00"
+
+  puppeteer:
+    description: "Puppeteer MCP server for browser automation, testing, and web scraping capabilities"
+    capabilities:
+      - browser_automation
+      - testing
+      - screenshots
+      - web_scraping
+      - e2e_testing
+    transport:
+      type: stdio
+      command: mcp-server-puppeteer
+      timeout: 30
+      retry_count: 2
+      retry_delay: 2.0
+      env_vars:
+        PUPPETEER_HEADLESS: "true"
+        PUPPETEER_TIMEOUT: "30000"
+      args:
+        - "--no-sandbox"
+        - "--disable-setuid-sandbox"
+    enabled: false  # Disabled by default until properly configured
+    priority: 3
+    health_check_interval: 300
+    auto_restart: false  # Browser automation servers may need manual restart
+    dependencies: []
+    tags:
+      - automation
+      - testing
+      - browser
+      - scraping
+    created_at: "2024-01-01T00:00:00"
+    updated_at: "2024-01-01T00:00:00"
+
+  filesystem:
+    description: "Filesystem MCP server for file operations, directory traversal, and file content management"
+    capabilities:
+      - file_operations
+      - directory_traversal
+      - content_management
+      - file_search
+    transport:
+      type: stdio
+      command: mcp-server-filesystem
+      timeout: 15
+      retry_count: 3
+      retry_delay: 1.0
+      env_vars:
+        FS_ROOT_PATH: "."
+        FS_ALLOW_WRITE: "true"
+      args:
+        - "--safe-mode"
+    enabled: false  # Disabled by default for security
+    priority: 3
+    health_check_interval: 600
+    auto_restart: true
+    dependencies: []
+    tags:
+      - filesystem
+      - files
+      - utilities
+    created_at: "2024-01-01T00:00:00"
+    updated_at: "2024-01-01T00:00:00"
+
+  git:
+    description: "Git MCP server for version control operations, repository management, and git workflow automation"
+    capabilities:
+      - version_control
+      - repository_management
+      - git_operations
+      - branch_management
+      - commit_analysis
+    transport:
+      type: stdio
+      command: mcp-server-git
+      timeout: 20
+      retry_count: 2
+      retry_delay: 1.5
+      env_vars:
+        GIT_SAFE_DIRECTORY: "*"
+      args:
+        - "--allow-all-repos"
+    enabled: false  # Disabled by default until properly configured
+    priority: 2
+    health_check_interval: 600
+    auto_restart: true
+    dependencies: []
+    tags:
+      - git
+      - version_control
+      - repository
+    created_at: "2024-01-01T00:00:00"
+    updated_at: "2024-01-01T00:00:00"
+
+  memory:
+    description: "Memory MCP server for persistent storage, caching, and state management across sessions"
+    capabilities:
+      - persistent_memory
+      - caching
+      - state_management
+      - session_storage
+    transport:
+      type: http
+      host: localhost
+      port: 8003
+      timeout: 10
+      retry_count: 3
+      retry_delay: 1.0
+      env_vars:
+        MEMORY_BACKEND: "redis"
+        MEMORY_TTL: "3600"
+      args: []
+    enabled: false  # Disabled by default until Redis is configured
+    priority: 2
+    health_check_interval: 300
+    auto_restart: true
+    dependencies: []
+    tags:
+      - memory
+      - storage
+      - cache
+      - persistence
+    created_at: "2024-01-01T00:00:00"
+    updated_at: "2024-01-01T00:00:00"

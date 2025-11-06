@@ -1,0 +1,25 @@
+{
+  "name": "code-agent-workspace",
+  "description": "Development workspace for code-agent project",
+  "version": "1.0.0",
+  "created_at": "2024-08-13T10:13:00Z",
+  "projects": [
+    {
+      "name": "code-agent",
+      "path": ".",
+      "type": "primary",
+      "status": "active"
+    }
+  ],
+  "features": {
+    "multi_project_support": true,
+    "workspace_templates": true,
+    "shared_resources": true,
+    "claude_integration": true
+  },
+  "settings": {
+    "auto_discover_projects": true,
+    "sync_settings": true,
+    "shared_hooks": true
+  }
+}

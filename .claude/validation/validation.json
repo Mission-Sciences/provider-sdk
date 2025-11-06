@@ -1,0 +1,35 @@
+{
+  "version": "1.0.0",
+  "validation_rules": {
+    "code_quality": {
+      "enabled": true,
+      "tools": ["ruff", "mypy", "black"],
+      "severity": "warning"
+    },
+    "security_checks": {
+      "enabled": true,
+      "tools": ["bandit", "safety"],
+      "severity": "error"
+    },
+    "dependency_analysis": {
+      "enabled": true,
+      "check_vulnerabilities": true,
+      "check_licenses": true
+    },
+    "performance_monitoring": {
+      "enabled": true,
+      "profile_tests": false,
+      "memory_checks": true
+    }
+  },
+  "automated_checks": {
+    "pre_commit": true,
+    "pre_push": true,
+    "ci_integration": true
+  },
+  "reporting": {
+    "format": "json",
+    "output_path": ".claude/validation/reports/",
+    "include_suggestions": true
+  }
+}

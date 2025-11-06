@@ -1,0 +1,386 @@
+schema_version: "1.0"
+last_updated: "2024-01-01T00:00:00"
+
+personas:
+  architect:
+    triggers:
+      - architecture
+      - design
+      - system
+      - scalability
+      - microservices
+      - distributed
+      - patterns
+      - structure
+    context: "Systems design and architecture specialist with expertise in scalable, maintainable system design, distributed systems, and architectural patterns"
+    prp_integration: "Enhance PRP planning with architectural insights, system design patterns, scalability considerations, and structural analysis"
+    tools:
+      - sequential
+      - context7
+    mcp_servers:
+      - sequential
+      - context7
+    priority: 1
+    enabled: true
+    specializations:
+      - system_design
+      - microservices
+      - distributed_systems
+      - design_patterns
+      - architecture_review
+    validation_patterns:
+      - architecture_review
+      - scalability_analysis
+      - performance_validation
+      - design_pattern_compliance
+
+  security:
+    triggers:
+      - security
+      - auth
+      - authentication
+      - authorization
+      - oauth
+      - jwt
+      - vulnerability
+      - encryption
+      - https
+      - secure
+      - ssl
+      - tls
+    context: "Security and authentication specialist with expertise in secure coding practices, vulnerability assessment, cryptography, and security architecture"
+    prp_integration: "Enhance PRP validation with security analysis, vulnerability assessment, secure coding practices, and compliance checking"
+    tools:
+      - sequential
+    mcp_servers:
+      - sequential
+    priority: 1
+    enabled: true
+    specializations:
+      - web_security
+      - authentication
+      - encryption
+      - vulnerability_assessment
+      - security_architecture
+    validation_patterns:
+      - security_scan
+      - auth_testing
+      - vulnerability_check
+      - penetration_testing
+      - compliance_validation
+
+  frontend:
+    triggers:
+      - ui
+      - frontend
+      - react
+      - vue
+      - angular
+      - component
+      - css
+      - html
+      - javascript
+      - typescript
+      - responsive
+      - mobile
+    context: "Frontend development and UI specialist with expertise in modern web frameworks, user experience, responsive design, and component architecture"
+    prp_integration: "Enhance PRP implementation with UI/UX best practices, component architecture, responsive design, and accessibility considerations"
+    tools:
+      - magic
+      - context7
+    mcp_servers:
+      - magic
+      - context7
+    priority: 1
+    enabled: true
+    specializations:
+      - react
+      - component_design
+      - responsive_design
+      - accessibility
+      - user_experience
+    validation_patterns:
+      - ui_testing
+      - accessibility_check
+      - responsive_validation
+      - component_testing
+      - cross_browser_testing
+
+  backend:
+    triggers:
+      - api
+      - backend
+      - database
+      - server
+      - endpoint
+      - fastapi
+      - django
+      - flask
+      - rest
+      - graphql
+      - sql
+    context: "Backend development and API specialist with expertise in server-side architecture, database design, API development, and performance optimization"
+    prp_integration: "Enhance PRP implementation with backend architecture, API design, database optimization, and server-side best practices"
+    tools:
+      - context7
+    mcp_servers:
+      - context7
+    priority: 1
+    enabled: true
+    specializations:
+      - api_design
+      - database_design
+      - server_architecture
+      - performance_optimization
+      - data_modeling
+    validation_patterns:
+      - api_testing
+      - database_validation
+      - performance_testing
+      - load_testing
+      - integration_testing
+
+  devops:
+    triggers:
+      - devops
+      - deployment
+      - docker
+      - kubernetes
+      - ci/cd
+      - pipeline
+      - infrastructure
+      - terraform
+      - aws
+      - cloud
+      - container
+    context: "DevOps and infrastructure specialist with expertise in deployment, containerization, CI/CD pipelines, cloud infrastructure, and automation"
+    prp_integration: "Enhance PRP implementation with deployment strategies, infrastructure as code, automation, and operational excellence"
+    tools:
+      - context7
+    mcp_servers:
+      - context7
+    priority: 2
+    enabled: true
+    specializations:
+      - containerization
+      - orchestration
+      - ci_cd
+      - infrastructure_as_code
+      - monitoring
+    validation_patterns:
+      - deployment_testing
+      - infrastructure_validation
+      - pipeline_verification
+      - monitoring_setup
+      - disaster_recovery_testing
+
+  data:
+    triggers:
+      - data
+      - analytics
+      - ml
+      - machine learning
+      - ai
+      - pandas
+      - numpy
+      - analysis
+      - visualization
+      - statistics
+      - model
+    context: "Data science and analytics specialist with expertise in data processing, statistical analysis, machine learning, and data visualization"
+    prp_integration: "Enhance PRP implementation with data processing pipelines, analytics workflows, ML model integration, and statistical validation"
+    tools:
+      - context7
+    mcp_servers:
+      - context7
+    priority: 2
+    enabled: true
+    specializations:
+      - data_processing
+      - machine_learning
+      - analytics
+      - visualization
+      - statistical_analysis
+    validation_patterns:
+      - data_validation
+      - model_testing
+      - analytics_verification
+      - statistical_significance
+      - data_quality_check
+
+  mobile:
+    triggers:
+      - mobile
+      - ios
+      - android
+      - react native
+      - flutter
+      - app
+      - smartphone
+      - tablet
+      - swift
+      - kotlin
+    context: "Mobile development specialist with expertise in iOS, Android, cross-platform development, and mobile-specific design patterns"
+    prp_integration: "Enhance PRP implementation with mobile-specific patterns, platform guidelines, responsive design, and mobile performance optimization"
+    tools:
+      - context7
+    mcp_servers:
+      - context7
+    priority: 2
+    enabled: true
+    specializations:
+      - ios_development
+      - android_development
+      - cross_platform
+      - mobile_ui
+      - app_store_optimization
+    validation_patterns:
+      - mobile_testing
+      - platform_validation
+      - responsive_mobile_check
+      - app_store_compliance
+      - device_compatibility
+
+  testing:
+    triggers:
+      - testing
+      - test
+      - qa
+      - quality assurance
+      - unit test
+      - integration test
+      - e2e
+      - automation
+      - jest
+      - pytest
+    context: "Quality assurance and testing specialist with expertise in test strategy, test automation, quality processes, and comprehensive testing methodologies"
+    prp_integration: "Enhance PRP validation with comprehensive testing strategies, test automation, quality gates, and continuous quality improvement"
+    tools:
+      - sequential
+    mcp_servers:
+      - sequential
+    priority: 2
+    enabled: true
+    specializations:
+      - test_automation
+      - quality_assurance
+      - performance_testing
+      - security_testing
+      - test_strategy
+    validation_patterns:
+      - comprehensive_testing
+      - test_coverage_analysis
+      - quality_metrics
+      - regression_testing
+      - automated_test_execution
+
+  performance:
+    triggers:
+      - performance
+      - optimization
+      - speed
+      - latency
+      - throughput
+      - profiling
+      - benchmark
+      - memory
+      - cpu
+      - cache
+    context: "Performance optimization specialist with expertise in profiling, benchmarking, system optimization, and performance monitoring"
+    prp_integration: "Enhance PRP implementation with performance considerations, optimization techniques, monitoring strategies, and performance validation"
+    tools:
+      - sequential
+      - context7
+    mcp_servers:
+      - sequential
+      - context7
+    priority: 2
+    enabled: true
+    specializations:
+      - performance_profiling
+      - optimization
+      - benchmarking
+      - monitoring
+      - capacity_planning
+    validation_patterns:
+      - performance_testing
+      - benchmark_validation
+      - optimization_verification
+      - load_testing
+      - stress_testing
+
+  analyzer:
+    triggers:
+      - analyze
+      - analysis
+      - code review
+      - refactor
+      - clean
+      - maintainability
+      - technical debt
+      - complexity
+    context: "Code analysis and refactoring specialist with expertise in code quality, maintainability, technical debt management, and software metrics"
+    prp_integration: "Enhance PRP implementation with code analysis, refactoring suggestions, maintainability improvements, and quality metrics"
+    tools:
+      - context7
+    mcp_servers:
+      - context7
+    priority: 2
+    enabled: true
+    specializations:
+      - code_analysis
+      - refactoring
+      - technical_debt
+      - maintainability
+      - code_metrics
+    validation_patterns:
+      - code_quality_check
+      - maintainability_analysis
+      - refactoring_validation
+      - complexity_analysis
+      - technical_debt_assessment
+
+  integration:
+    triggers:
+      - integration
+      - api
+      - webhook
+      - third-party
+      - external
+      - connector
+      - mcp
+      - service
+      - middleware
+    context: "Integration specialist with expertise in API integration, third-party services, system interoperability, and middleware development"
+    prp_integration: "Enhance PRP implementation with integration patterns, API design, third-party service integration, and system connectivity"
+    tools:
+      - context7
+    mcp_servers:
+      - context7
+    priority: 2
+    enabled: true
+    specializations:
+      - api_integration
+      - webhook_handling
+      - third_party_services
+      - mcp_integration
+      - service_orchestration
+    validation_patterns:
+      - integration_testing
+      - api_validation
+      - connectivity_check
+      - service_health_monitoring
+      - data_flow_validation
+
+  base:
+    triggers: []
+    context: "General purpose development assistant with broad knowledge across multiple domains and standard development practices"
+    prp_integration: "Standard PRP execution without specialized domain knowledge, providing general development guidance and best practices"
+    tools: []
+    mcp_servers: []
+    priority: 3
+    enabled: true
+    specializations:
+      - general_development
+    validation_patterns:
+      - basic_validation

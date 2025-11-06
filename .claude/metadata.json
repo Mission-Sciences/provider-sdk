@@ -1,0 +1,27 @@
+{
+  "version": "1.0.0",
+  "integration": "code-agent-cli",
+  "project_name": "code-agent",
+  "created_by": "code-agent-cli",
+  "integration_date": "2024-08-13T10:14:00Z",
+  "claude_directory": ".claude",
+  "prps_directory": "PRPs",
+  "components": [
+    "claude_code",
+    "prp_framework",
+    "mcp_servers",
+    "hooks",
+    "workspace",
+    "validation"
+  ],
+  "structure": {
+    "PRPs": "PRP templates, examples, and scripts",
+    "hooks": "Claude Code integration hooks",
+    "mcp_servers": "Model Context Protocol servers",
+    "config": "Project configuration files",
+    "workspace": "Workspace management",
+    "validation": "Code validation and quality checks",
+    "commands": "Claude Code command definitions",
+    "docs": "Documentation and module system"
+  }
+}
