@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Session Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React from CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+
+  <!-- Babel Standalone for JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- React App -->
+  <script type="text/babel" data-type="module" data-presets="react">
+    // Import SDK
+    import { MarketplaceSDK } from '/dist/marketplace-sdk.es.js';
+
+    const { useState, useEffect, useCallback, useRef } = React;
+
+    // useMarketplaceSession hook
+    function useMarketplaceSession(options) {
+      const [session, setSession] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [error, setError] = useState(null);
+      const [remainingTime, setRemainingTime] = useState(0);
+      const [formattedTime, setFormattedTime] = useState('0:00');
+      const [formattedTimeWithHours, setFormattedTimeWithHours] = useState('0:00:00');
+      const [isTimerRunning, setIsTimerRunning] = useState(false);
+
+      const sdkRef = useRef(null);
+      const intervalRef = useRef(null);
+
+      const isHeartbeatEnabled = options.enableHeartbeat ?? false;
+      const isTabSyncEnabled = options.enableTabSync ?? false;
+
+      useEffect(() => {
+        const initializeSDK = async () => {
+          try {
+            const sdk = new MarketplaceSDK({
+              apiEndpoint: options.apiEndpoint || 'http://localhost:3000',
+              jwksUri: options.jwksUri,
+              debug: options.debug,
+              autoStart: options.autoStart,
+              warningThresholdSeconds: options.warningThresholdSeconds,
+              applicationId: options.applicationId,
+              themeMode: options.themeMode || 'light',
+              enableHeartbeat: options.enableHeartbeat ?? false,
+              heartbeatIntervalSeconds: options.heartbeatIntervalSeconds ?? 30,
+              enableTabSync: options.enableTabSync ?? false,
+              pauseOnHidden: options.pauseOnHidden ?? false,
+              useBackendValidation: options.useBackendValidation ?? false,
+            });
+
+            sdk.on('onSessionStart', (data) => {
+              setSession(data);
+              setLoading(false);
+              setIsTimerRunning(sdk.isTimerRunning());
+              options.onSessionStart?.(data);
+            });
+
+            // Add event listener for manual modal trigger (for demo purposes)
+            window.addEventListener('gw-show-warning', (e) => {
+              if (sdkRef.current && sdkRef.current.modal) {
+                sdkRef.current.modal.show({
+                  remainingSeconds: e.detail.remainingSeconds,
+                  onExtend: async () => {
+                    try {
+                      await extendSession(15);
+                      sdkRef.current.modal.hide();
+                      alert('✅ Session extended by 15 minutes!');
+                    } catch (error) {
+                      console.error('Extension failed:', error);
+                      sdkRef.current.modal.hide();
+                    }
+                  },
+                  onEnd: () => {
+                    sdkRef.current.modal.hide();
+                    endSession();
+                  },
+                });
+              }
+            });
+
+            sdk.on('onSessionWarning', (data) => {
+              options.onSessionWarning?.(data);
+            });
+
+            sdk.on('onSessionEnd', () => {
+              setIsTimerRunning(false);
+              options.onSessionEnd?.();
+            });
+
+            sdk.on('onError', (err) => {
+              setError(err.message);
+              setLoading(false);
+              options.onError?.(err);
+            });
+
+            sdkRef.current = sdk;
+            await sdk.initialize();
+
+            intervalRef.current = setInterval(() => {
+              if (sdkRef.current) {
+                setRemainingTime(sdkRef.current.getRemainingTime());
+                setFormattedTime(sdkRef.current.getFormattedTime());
+                setFormattedTimeWithHours(sdkRef.current.getFormattedTimeWithHours());
+                setIsTimerRunning(sdkRef.current.isTimerRunning());
+              }
+            }, 1000);
+
+          } catch (err) {
+            setError(err.message);
+            setLoading(false);
+          }
+        };
+
+        initializeSDK();
+
+        return () => {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          if (sdkRef.current) sdkRef.current.destroy();
+        };
+      }, []);
+
+      const startTimer = useCallback(() => {
+        sdkRef.current?.startTimer();
+        setIsTimerRunning(true);
+      }, []);
+
+      const pauseTimer = useCallback(() => {
+        sdkRef.current?.pauseTimer();
+        setIsTimerRunning(false);
+      }, []);
+
+      const resumeTimer = useCallback(() => {
+        sdkRef.current?.resumeTimer();
+        setIsTimerRunning(true);
+      }, []);
+
+      const endSession = useCallback(() => {
+        sdkRef.current?.endSession();
+        setIsTimerRunning(false);
+      }, []);
+
+      const extendSession = useCallback(async (minutes) => {
+        if (!sdkRef.current) throw new Error('SDK not initialized');
+        await sdkRef.current.extendSession(minutes);
+      }, []);
+
+      const completeSession = useCallback(async (actualUsageMinutes) => {
+        if (!sdkRef.current) throw new Error('SDK not initialized');
+        await sdkRef.current.completeSession(actualUsageMinutes);
+      }, []);
+
+      return {
+        session, loading, error,
+        remainingTime, formattedTime, formattedTimeWithHours, isTimerRunning,
+        startTimer, pauseTimer, resumeTimer, endSession,
+        extendSession, completeSession,
+        isHeartbeatEnabled, isTabSyncEnabled,
+      };
+    }
+
+    // Main App Component
+    function App() {
+      const {
+        session, loading, error,
+        formattedTimeWithHours, isTimerRunning,
+        endSession,
+        extendSession,
+        isHeartbeatEnabled, isTabSyncEnabled,
+        remainingTime,
+      } = useMarketplaceSession({
+        apiEndpoint: 'http://localhost:3000',
+        jwksUri: 'http://localhost:3000/.well-known/jwks.json',
+        applicationId: 'app_test_123',
+        debug: true,
+        autoStart: true,
+        warningThresholdSeconds: 240, // 4 minutes - so a 5 min JWT shows warning after 1 min
+        themeMode: 'auto', // 'light', 'dark', or 'auto' - NEW theme system!
+        enableHeartbeat: true,
+        heartbeatIntervalSeconds: 30,
+        enableTabSync: true,
+        pauseOnHidden: true,
+      });
+
+      const handleExtendSession = async () => {
+        // Try to extend session via API
+        try {
+          await extendSession(15); // Extend by 15 minutes
+          alert('Session extended by 15 minutes!');
+        } catch (error) {
+          // If extension fails (likely insufficient tokens), redirect to marketplace
+          console.error('Extension failed, redirecting to marketplace:', error);
+          window.location.href = `https://d3p2yqofgy75sz.cloudfront.net/extend-session?sessionId=${session?.sessionId}`;
+        }
+      };
+
+      const handleEndSession = () => {
+        if (confirm('End session and return to marketplace?')) {
+          endSession();
+          // Redirect to marketplace
+          window.location.href = 'https://d3p2yqofgy75sz.cloudfront.net/';
+        }
+      };
+
+      // Use SPA design system colors
+      const spaColors = {
+        background: 'hsl(0 0% 100%)',
+        foreground: 'hsl(222.2 84% 4.9%)',
+        primary: 'hsl(221.2 83.2% 53.3%)',
+        primaryForeground: 'hsl(210 40% 98%)',
+        secondary: 'hsl(210 40% 96.1%)',
+        border: 'hsl(214.3 31.8% 91.4%)',
+        success: 'hsl(142 76% 36%)',
+        successForeground: 'hsl(0 0% 100%)',
+        destructive: 'hsl(0 84.2% 60.2%)',
+        destructiveForeground: 'hsl(210 40% 98%)',
+        muted: 'hsl(210 40% 96.1%)',
+        mutedForeground: 'hsl(215.4 16.3% 46.9%)',
+      };
+
+      const styles = {
+        container: {
+          minHeight: '100vh',
+          background: spaColors.background,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+        },
+        card: {
+          background: spaColors.background,
+          border: `1px solid ${spaColors.border}`,
+          borderRadius: '12px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          padding: '40px',
+          maxWidth: '700px',
+          width: '100%',
+        },
+        title: {
+          marginBottom: '20px',
+          fontSize: '28px',
+          color: spaColors.foreground,
+          fontWeight: '600',
+        },
+        badges: {
+          display: 'flex',
+          gap: '10px',
+          marginBottom: '20px',
+        },
+        badge: {
+          background: 'hsl(142 76% 90%)',
+          color: spaColors.success,
+          padding: '4px 12px',
+          borderRadius: '12px',
+          fontSize: '12px',
+          fontWeight: '600',
+        },
+        timerCard: {
+          background: spaColors.primary,
+          borderRadius: '12px',
+          padding: '25px',
+          marginBottom: '25px',
+          textAlign: 'center',
+          color: 'white',
+        },
+        timerValue: {
+          fontSize: '48px',
+          fontWeight: 'bold',
+          marginBottom: '10px',
+        },
+        buttonGroup: {
+          display: 'flex',
+          gap: '10px',
+          flexWrap: 'wrap',
+          marginBottom: '20px',
+        },
+        button: {
+          flex: '1 1 auto',
+          minWidth: '120px',
+          padding: '12px 20px',
+          border: 'none',
+          borderRadius: '8px',
+          fontSize: '14px',
+          fontWeight: '600',
+          cursor: 'pointer',
+        },
+      };
+
+      if (loading) {
+        return (
+          <div style={styles.container}>
+            <div style={styles.card}>
+              <h2 style={{color: spaColors.foreground}}>Loading...</h2>
+              <p style={{color: spaColors.mutedForeground}}>Initializing your session</p>
+            </div>
+          </div>
+        );
+      }
+
+      if (error) {
+        return (
+          <div style={styles.container}>
+            <div style={styles.card}>
+              <h2 style={{color: spaColors.destructive}}>Session Error</h2>
+              <p style={{color: spaColors.mutedForeground}}>{error}</p>
+            </div>
+          </div>
+        );
+      }
+
+      if (!session) return null;
+
+      return (
+        <div style={styles.container}>
+          <div style={styles.card}>
+            <h1 style={styles.title}>Session Dashboard</h1>
+            <p style={{marginBottom: '20px', color: spaColors.mutedForeground}}>
+              General Wisdom Provider SDK Demo
+            </p>
+
+            <div style={styles.timerCard}>
+              <div style={styles.timerValue}>{formattedTimeWithHours}</div>
+              <div style={{fontSize: '14px', opacity: 0.9}}>Time Remaining</div>
+            </div>
+
+            <div style={{marginTop: '30px'}}>
+              <div style={styles.buttonGroup}>
+                <button
+                  style={{...styles.button, background: spaColors.success, color: spaColors.successForeground}}
+                  onClick={handleExtendSession}
+                >
+                  ⏰ Extend Session
+                </button>
+                <button
+                  style={{...styles.button, background: spaColors.destructive, color: spaColors.destructiveForeground}}
+                  onClick={handleEndSession}
+                >
+                  End Session
+                </button>
+              </div>
+
+              {/* Session info */}
+              <div style={{marginTop: '20px', padding: '15px', background: spaColors.muted, borderRadius: '8px', fontSize: '14px', color: spaColors.mutedForeground}}>
+                <div style={{marginBottom: '8px'}}>
+                  <strong style={{color: spaColors.foreground}}>Session ID:</strong> {session.sessionId.substring(0, 16)}...
+                </div>
+                <div style={{marginBottom: '8px'}}>
+                  <strong style={{color: spaColors.foreground}}>Duration:</strong> {session.durationMinutes} minutes
+                </div>
+                {isHeartbeatEnabled && (
+                  <div style={{fontSize: '12px', marginTop: '10px', color: spaColors.success}}>
+                    ❤️ Heartbeat Active
+                  </div>
+                )}
+              </div>
+
+              {/* Test button to see modal styling immediately */}
+              <div style={{marginTop: '15px', padding: '15px', background: 'hsl(221.2 83.2% 97%)', borderRadius: '8px', border: `1px solid ${spaColors.border}`}}>
+                <div style={{fontSize: '12px', color: spaColors.primary, marginBottom: '10px', fontWeight: '600'}}>
+                  🎨 DEMO: TEST WARNING MODAL
+                </div>
+                <button
+                  style={{...styles.button, background: spaColors.primary, color: spaColors.primaryForeground, width: '100%'}}
+                  onClick={() => {
+                    const event = new CustomEvent('gw-show-warning', {
+                      detail: { remainingSeconds: remainingTime || 180 }
+                    });
+                    window.dispatchEvent(event);
+                  }}
+                >
+                  👁️ Preview Warning Modal
+                </button>
+                <div style={{fontSize: '12px', marginTop: '8px', color: spaColors.mutedForeground}}>
+                  Click to see the new SPA-matched styling
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Render
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
