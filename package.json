@@ -30,7 +30,8 @@
     "generate-jwt": "node scripts/generate-test-jwt.js",
     "test-server": "node scripts/test-server.js",
     "test-server-p2": "node scripts/test-server-phase2.js",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "test:integration": "vitest run --config tests/integration/vitest.config.ts"
   },
   "keywords": [
     "marketplace",
@@ -43,10 +44,13 @@
   "author": "General Wisdom",
   "license": "MIT",
   "devDependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.931.0",
+    "@aws-sdk/client-ssm": "^3.931.0",
     "@types/node": "^20.10.0",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
     "@vitest/coverage-v8": "^1.0.0",
+    "amazon-cognito-identity-js": "^6.3.16",
     "eslint": "^8.54.0",
     "jsdom": "^23.0.0",
     "prettier": "^3.1.0",
