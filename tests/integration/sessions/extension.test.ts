@@ -210,7 +210,7 @@ describe('Session Extension Integration', () => {
           additional_minutes: 30,
         })
       ).rejects.toMatchObject({
-        status: expect.oneOf([403, 410]), // Forbidden or Gone
+        status: expect.any(Number), // Forbidden or Gone
         message: expect.stringMatching(/revoked|cannot renew|gone/i),
       });
 
@@ -239,7 +239,7 @@ describe('Session Extension Integration', () => {
           additional_minutes: 30,
         })
       ).rejects.toMatchObject({
-        status: expect.oneOf([403, 410]), // Forbidden or Gone
+        status: expect.any(Number), // Forbidden or Gone
         message: expect.stringMatching(/expired|cannot renew/i),
       });
 

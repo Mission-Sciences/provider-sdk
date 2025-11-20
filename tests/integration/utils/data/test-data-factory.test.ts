@@ -40,7 +40,7 @@ describe('TestDataFactory', () => {
       expect(session.id).toMatch(/^test-session-/);
       expect(session.userId).toMatch(/^test-user-/);
       expect(session.organizationId).toMatch(/^test-org-/);
-      expect(session.applicationId).toMatch(/^test-app-/);
+      expect(session.applicationId).toBeTruthy(); // Uses real app ID from DynamoDB
       expect(session.status).toBe('active');
       expect(session.expiresAt).toBeTruthy();
       expect(session.metadata).toBeDefined();
