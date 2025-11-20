@@ -9,13 +9,13 @@ image: node:20
 
 definitions:
   caches:
-    node_modules: node_modules
+    node-modules: node_modules
 
   steps:
     - step: &test
         name: Run Tests
         caches:
-          - node_modules
+          - node-modules
         script:
           - npm ci
           - npm run lint
@@ -24,7 +24,7 @@ definitions:
     - step: &build
         name: Build Package
         caches:
-          - node_modules
+          - node-modules
         script:
           - npm ci
           - npm run build
