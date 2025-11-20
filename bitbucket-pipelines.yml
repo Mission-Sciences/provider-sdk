@@ -87,7 +87,12 @@ definitions:
     - step: &publish-codeartifact
         name: Publish to AWS CodeArtifact
         oidc: true
+        caches:
+          - node-modules
         script:
+          # Install dependencies (needed for prepublishOnly hook)
+          - npm ci
+
           # Install AWS CLI
           - apt-get update && apt-get install -y awscli
 
@@ -103,7 +108,7 @@ definitions:
           - PACKAGE_VERSION=$(node -p "require('./package.json').version")
           - echo "Publishing version $PACKAGE_VERSION to CodeArtifact..."
 
-          # Publish package
+          # Publish package (prepublishOnly will run npm run build)
           - npm publish || echo "⚠️ Publish failed (version may already exist)"
 
           - echo "✓ Package published successfully"
