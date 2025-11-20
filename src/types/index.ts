@@ -32,6 +32,12 @@ export interface SDKConfig {
   pauseOnHidden?: boolean;
   /** Use backend validation instead of JWKS (default: false) */
   useBackendValidation?: boolean;
+
+  // Lifecycle Hooks
+  /** Optional hooks for synchronizing app auth state with marketplace sessions */
+  hooks?: SessionLifecycleHooks;
+  /** Hook execution timeout in milliseconds (default: 5000) */
+  hookTimeoutMs?: number;
 }
 
 /**
@@ -89,6 +95,91 @@ export interface SDKEvents {
   onSessionEnd: () => void;
   /** Called on any error */
   onError: (error: Error) => void;
+}
+
+/**
+ * Session Lifecycle Hook Contexts
+ */
+export interface SessionStartContext {
+  /** Unique session UUID */
+  sessionId: string;
+  /** User ID from JWT */
+  userId: string;
+  /** User email (if available in JWT) */
+  email?: string;
+  /** Organization ID */
+  orgId: string;
+  /** Application ID */
+  applicationId: string;
+  /** Session duration in minutes */
+  durationMinutes: number;
+  /** Expiration timestamp (Unix seconds) */
+  expiresAt: number;
+  /** Full JWT token for app use */
+  jwt: string;
+}
+
+export interface SessionEndContext {
+  /** Unique session UUID */
+  sessionId: string;
+  /** User ID */
+  userId: string;
+  /** Reason for session end */
+  reason: 'expired' | 'manual' | 'error';
+  /** Actual session duration in minutes (if available) */
+  actualDurationMinutes?: number;
+}
+
+export interface SessionExtendContext {
+  /** Unique session UUID */
+  sessionId: string;
+  /** User ID */
+  userId: string;
+  /** Additional minutes added to session */
+  additionalMinutes: number;
+  /** New expiration timestamp (Unix seconds) */
+  newExpiresAt: number;
+}
+
+export interface SessionWarningContext {
+  /** Unique session UUID */
+  sessionId: string;
+  /** User ID */
+  userId: string;
+  /** Remaining seconds until expiration */
+  remainingSeconds: number;
+}
+
+/**
+ * Session Lifecycle Hooks
+ * Optional callbacks that allow applications to synchronize their auth state with marketplace sessions
+ */
+export interface SessionLifecycleHooks {
+  /**
+   * Called after JWT validation succeeds but before session timer starts
+   * Use to: Auto-login user to your app's auth system
+   * Note: Hook failure will prevent session from starting
+   */
+  onSessionStart?: (context: SessionStartContext) => Promise<void> | void;
+
+  /**
+   * Called when session expires or is manually ended, before redirect
+   * Use to: Force logout user from your app's auth system
+   * Note: Hook failure will be logged but won't prevent session end
+   */
+  onSessionEnd?: (context: SessionEndContext) => Promise<void> | void;
+
+  /**
+   * Called when session extension succeeds
+   * Use to: Refresh app auth tokens if needed
+   */
+  onSessionExtend?: (context: SessionExtendContext) => Promise<void> | void;
+
+  /**
+   * Called before session warning modal is shown
+   * Use to: Prepare user for session expiration
+   */
+  onSessionWarning?: (context: SessionWarningContext) => Promise<void> | void;
 }
 
 /**

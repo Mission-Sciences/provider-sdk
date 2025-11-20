@@ -2,12 +2,12 @@ import { SDKError } from '../types';
 
 /**
  * Extract JWT token from URL parameter
- * @param paramName - URL parameter name (default: 'gwSession')
+ * @param paramName - URL parameter name (default: 'jwt')
  * @param url - URL to extract from (default: window.location.href)
  * @returns JWT token or null if not found
  */
 export function extractTokenFromURL(
-  paramName: string = 'gwSession',
+  paramName: string = 'jwt',
   url?: string
 ): string | null {
   try {

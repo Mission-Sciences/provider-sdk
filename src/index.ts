@@ -18,6 +18,7 @@ export type { TabSyncMessage } from './core/TabSyncManager';
 
 // UI Components
 export { WarningModal } from './ui/WarningModal';
+export { SessionHeader } from './ui/SessionHeader';
 
 // Styling & Theme
 export { lightTheme, darkTheme, getTheme, generateCSSVariables } from './styles/theme';
@@ -34,6 +35,11 @@ export type {
   JWTClaims,
   JWKSKey,
   JWKSResponse,
+  SessionLifecycleHooks,
+  SessionStartContext,
+  SessionEndContext,
+  SessionExtendContext,
+  SessionWarningContext,
 } from './types';
 
 export { SDKError } from './types';

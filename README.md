@@ -5,612 +5,455 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue)](https://www.typescriptlang.org/)
 
-## 📋 Table of Contents
-
-- [Overview](#overview)
-- [Features](#features)
-- [Quick Start](#quick-start)
-- [Installation](#installation)
-- [Usage](#usage)
-  - [Vanilla JavaScript](#vanilla-javascript)
-  - [React](#react)
-  - [TypeScript](#typescript)
-- [API Reference](#api-reference)
-- [Development](#development)
-- [Testing](#testing)
-- [Examples](#examples)
-- [License](#license)
-
-## 🎯 Overview
-
-The Marketplace Provider SDK enables third-party applications to integrate with the General Wisdom marketplace platform through JWT-based session management. The SDK handles:
-
-### Phase 1 (Core Features)
-- **JWT Validation**: RS256 signature verification using JWKS
-- **Session Timers**: Client-side countdown with expiration warnings
-- **Event Handling**: Lifecycle hooks for session start, warning, and end
-- **UI Components**: Pre-built warning modals with customizable styling
-
-### Phase 2 (Advanced Features) ✨
-- **Heartbeat System**: Periodic server communication and time synchronization
-- **Multi-Tab Coordination**: Automatic synchronization across browser tabs
-- **Session Extension**: Self-service session renewal with token management
-- **Early Completion**: End sessions early with automatic refund calculation
-- **Visibility API**: Battery-friendly auto-pause when tab hidden
-- **Backend Validation**: Optional server-side JWT validation
-
-### Architecture
-
-```
-Marketplace PWA → Go Backend (creates JWT) → Provider App (validates JWT via SDK)
-```
-
-## ✨ Features
-
-### Core Features (Phase 1)
-- ✅ **Zero Dependencies**: Self-contained with minimal external deps (`jwks-rsa`, `jsonwebtoken`)
-- ✅ **Framework Agnostic**: Works with vanilla JS, React, Vue, and more
-- ✅ **TypeScript First**: Full type definitions included
-- ✅ **Lightweight**: < 10KB gzipped (8.14 KB in Phase 2)
-- ✅ **Secure**: RS256 JWT verification with JWKS
-- ✅ **Customizable**: Flexible styling and event handling
-
-### Advanced Features (Phase 2) ✨
-- ❤️ **Heartbeat System**: Automatic server sync every 30s (configurable)
-- 🔄 **Multi-Tab Sync**: Master tab election with BroadcastChannel API
-- ⏰ **Session Extension**: Self-service renewal via backend API
-- ✅ **Early Completion**: End sessions early with refund calculation
-- 👁️ **Visibility API**: Auto-pause when tab hidden (battery-friendly)
-- 🔐 **Backend Validation**: Alternative to JWKS for sensitive apps
-- 🎯 **React-First**: Comprehensive React hook with all features
-
 ## 🚀 Quick Start
 
-### 1. Install Dependencies
-
 ```bash
-npm install
-```
-
-### 2. Generate Test Keys (Development Only)
-
-```bash
-npm run generate-keys
-```
-
-This creates a 2048-bit RSA key pair in the `keys/` directory.
-
-### 3. Start Test Server
-
-**Phase 1 (Basic Features):**
-```bash
-npm run test-server
-```
-
-**Phase 2 (All Features + Backend Mocks):**
-```bash
-npm run test-server-p2
-```
-
-This serves the test app, JWKS endpoint, and Phase 2 backend mocks at `http://localhost:3000`
-
-### 4. Generate Test JWT
-
-```bash
-npm run generate-jwt 60  # 60 minutes duration
-```
-
-Copy the JWT token and use it in your test URL:
-```
-http://localhost:3000?gwSession=<YOUR_JWT_TOKEN>
-```
-
-### 5. Run Example
-
-```bash
-# Build SDK first
-npm run build
-
-# Open vanilla JS example
-open examples/vanilla-js/index.html
-```
-
-## 📦 Installation
-
-### NPM (Production)
-
-```bash
+# Install
 npm install @marketplace/provider-sdk
-```
 
-### CDN (UMD Build)
+# Initialize
+import MarketplaceSDK from '@marketplace/provider-sdk';
 
-```html
-<script src="https://cdn.jsdelivr.net/npm/@marketplace/provider-sdk@latest/dist/marketplace-sdk.umd.js"></script>
-```
-
-## 💻 Usage
-
-### Vanilla JavaScript
-
-```html
-<!DOCTYPE html>
-<html>
-<head>
-  <script type="module">
-    import { MarketplaceSDK } from '@marketplace/provider-sdk';
-
-    // Initialize SDK
-    const sdk = new MarketplaceSDK({
-      jwksUri: 'https://api.generalwisdom.com/.well-known/jwks.json',
-      applicationId: 'your-app-id',
-      debug: true,
-    });
-
-    // Register event handlers
-    sdk.on('onSessionStart', (data) => {
-      console.log('Session started:', data);
-    });
-
-    sdk.on('onSessionWarning', ({ remainingSeconds }) => {
-      console.warn('Session expiring in', remainingSeconds, 'seconds');
-    });
-
-    sdk.on('onSessionEnd', () => {
-      console.log('Session ended');
-    });
-
-    sdk.on('onError', (error) => {
-      console.error('SDK error:', error);
-    });
-
-    // Initialize session
-    await sdk.initialize();
-
-    // Update timer display
-    setInterval(() => {
-      document.getElementById('timer').textContent = sdk.getFormattedTime();
-    }, 1000);
-  </script>
-</head>
-<body>
-  <div id="timer">--:--</div>
-  <button onclick="sdk.pauseTimer()">Pause</button>
-  <button onclick="sdk.resumeTimer()">Resume</button>
-  <button onclick="sdk.endSession()">End Session</button>
-</body>
-</html>
-```
-
-### React (First-Class Citizen)
-
-**Basic Usage (Phase 1):**
-```tsx
-import { useMarketplaceSession } from '@marketplace/provider-sdk/react';
-
-function App() {
-  const {
-    session,
-    loading,
-    error,
-    formattedTime,
-    pauseTimer,
-    resumeTimer,
-    endSession,
-  } = useMarketplaceSession({
-    applicationId: 'your-app-id',
-  });
-
-  if (loading) return <div>Loading session...</div>;
-  if (error) return <div>Error: {error}</div>;
-
-  return (
-    <div>
-      <h1>Session Dashboard</h1>
-      <p>Time remaining: {formattedTime}</p>
-      <button onClick={pauseTimer}>Pause</button>
-      <button onClick={resumeTimer}>Resume</button>
-      <button onClick={endSession}>End Session</button>
-    </div>
-  );
-}
-```
-
-**Advanced Usage (Phase 2 - All Features):**
-```tsx
-import { useMarketplaceSession } from '@marketplace/provider-sdk/react';
-
-function AdvancedApp() {
-  const {
-    session,
-    loading,
-    error,
-    formattedTime,
-    isTimerRunning,
-    pauseTimer,
-    resumeTimer,
-    endSession,
-    extendSession,        // ⏰ Phase 2: Extend session
-    completeSession,      // ✅ Phase 2: Complete early
-    isHeartbeatEnabled,   // ❤️ Phase 2: Heartbeat status
-    isTabSyncEnabled,     // 🔄 Phase 2: Tab sync status
-  } = useMarketplaceSession({
-    apiEndpoint: 'https://api.generalwisdom.com',
-    applicationId: 'your-app-id',
-
-    // Phase 2 Features
-    enableHeartbeat: true,           // ❤️ Send heartbeats every 30s
-    heartbeatIntervalSeconds: 30,    // Configurable interval
-    enableTabSync: true,              // 🔄 Sync across tabs
-    pauseOnHidden: true,              // 👁️ Auto-pause when hidden
-
-    debug: true,
-  });
-
-  if (loading) return <div>Loading session...</div>;
-  if (error) return <div>Error: {error}</div>;
-
-  const handleExtend = async () => {
-    try {
-      await extendSession(15); // Extend by 15 minutes
-      alert('Session extended!');
-    } catch (error) {
-      alert('Extension failed');
-    }
-  };
-
-  const handleComplete = async () => {
-    if (!confirm('Complete session early?')) return;
-
-    try {
-      const now = Math.floor(Date.now() / 1000);
-      const actualMinutes = Math.ceil((now - session.startTime) / 60);
-      await completeSession(actualMinutes);
-    } catch (error) {
-      alert('Completion failed');
-    }
-  };
-
-  return (
-    <div>
-      <h1>Session Dashboard</h1>
-      <div>
-        Time: {formattedTime}
-        {isHeartbeatEnabled && <span> ❤️</span>}
-        {isTabSyncEnabled && <span> 🔄</span>}
-      </div>
-      <button onClick={pauseTimer}>Pause</button>
-      <button onClick={resumeTimer}>Resume</button>
-      <button onClick={handleExtend}>Extend +15min</button>
-      <button onClick={handleComplete}>Complete Early</button>
-      <button onClick={endSession}>End Session</button>
-    </div>
-  );
-}
-```
-
-### TypeScript
-
-```typescript
-import { MarketplaceSDK, SessionData, SDKConfig } from '@marketplace/provider-sdk';
-
-const config: SDKConfig = {
-  jwksUri: 'https://api.generalwisdom.com/.well-known/jwks.json',
+const sdk = new MarketplaceSDK({
+  jwtParamName: 'jwt',
   applicationId: 'your-app-id',
-  debug: true,
-  autoStart: true,
-  warningThresholdSeconds: 300, // 5 minutes
-};
-
-const sdk = new MarketplaceSDK(config);
-
-sdk.on('onSessionStart', (data: SessionData) => {
-  console.log('Session:', data.sessionId);
-  console.log('User:', data.userId);
-  console.log('Expires:', new Date(data.exp * 1000));
+  jwksUrl: 'https://api.generalwisdom.com/.well-known/jwks.json',
+  onSessionStart: async (context) => {
+    // Your auth logic
+  },
+  onSessionEnd: async (context) => {
+    // Cleanup logic
+  },
 });
 
 await sdk.initialize();
 ```
 
-## 📚 API Reference
+## 📚 Documentation
 
-### `MarketplaceSDK`
+- **[Integration Guide](./INTEGRATION_GUIDE.md)** - Comprehensive guide for all frameworks
+- **[Quick Start Guide](./QUICKSTART.md)** - Get started in 3 minutes
+- **[Testing Guide](./TESTING_GUIDE.md)** - Testing strategies
+- **[JWT Specification](./jwt-specification.md)** - Token format details
 
-Main SDK class for session management.
+### Example Integrations
 
-#### Constructor
+- **[GhostDog Integration](../extension-ghostdog/MARKETPLACE_INTEGRATION.md)** - Real-world Chrome extension example
 
-```typescript
-new MarketplaceSDK(config: SDKConfig)
+## ✨ Features
+
+### Core Features
+- ✅ **Zero Dependencies**: Self-contained with minimal external deps
+- ✅ **Framework Agnostic**: Works with vanilla JS, React, Vue, and more
+- ✅ **TypeScript First**: Full type definitions included
+- ✅ **Lightweight**: < 10KB gzipped
+- ✅ **Secure**: RS256 JWT verification with JWKS
+- ✅ **Customizable**: Flexible styling and event handling
+
+### Advanced Features (Phase 2)
+- ❤️ **Heartbeat System**: Automatic server sync
+- 🔄 **Multi-Tab Sync**: Master tab election with BroadcastChannel API
+- ⏰ **Session Extension**: Self-service renewal
+- ✅ **Early Completion**: End sessions early with refund calculation
+- 👁️ **Visibility API**: Auto-pause when tab hidden
+- 🔐 **Backend Validation**: Alternative to JWKS for sensitive apps
+
+## 🎯 How It Works
+
+```
+Marketplace → JWT in URL → SDK validates → Your app authenticates → Session active
 ```
 
-**Config Options:**
+When users launch your app from the marketplace:
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| **Phase 1 Options** | | | |
-| `jwksUri` | `string` | `https://api.generalwisdom.com/.well-known/jwks.json` | JWKS endpoint URL |
-| `applicationId` | `string` | `''` | Your application ID (optional but recommended) |
-| `debug` | `boolean` | `false` | Enable debug logging |
-| `autoStart` | `boolean` | `true` | Auto-start timer after initialization |
-| `warningThresholdSeconds` | `number` | `300` | Show warning when seconds remaining <= threshold |
-| `customStyles` | `Partial<ModalStyles>` | `{}` | Custom styles for warning modal |
-| **Phase 2 Options** | | | |
-| `apiEndpoint` | `string` | `http://localhost:3000` | Backend API URL |
-| `enableHeartbeat` | `boolean` | `false` | Enable heartbeat system |
-| `heartbeatIntervalSeconds` | `number` | `30` | Heartbeat frequency in seconds |
-| `enableTabSync` | `boolean` | `false` | Enable multi-tab synchronization |
-| `pauseOnHidden` | `boolean` | `false` | Auto-pause when tab is hidden |
-| `useBackendValidation` | `boolean` | `false` | Use backend validation instead of JWKS |
+1. **URL Detection**: SDK checks for JWT parameter (`?jwt=...`)
+2. **JWT Validation**: Verifies signature using RS256 and JWKS
+3. **Session Start**: Calls your `onSessionStart` hook
+4. **Timer Start**: Countdown begins
+5. **Session Active**: User interacts with your app
+6. **Warning**: Alert at 5 minutes remaining (configurable)
+7. **Session End**: Calls your `onSessionEnd` hook
+8. **Redirect**: Returns to marketplace (optional)
 
-#### Methods
+## 📦 Installation
 
-**`initialize(): Promise<SessionData>`**
+### NPM
 
-Initialize SDK and validate JWT. Must be called before other methods.
-
-```typescript
-const sessionData = await sdk.initialize();
-console.log('Session:', sessionData.sessionId);
+```bash
+npm install @marketplace/provider-sdk
 ```
 
-**`on<K extends keyof SDKEvents>(event: K, handler: SDKEvents[K]): void`**
+### Yarn
 
-Register event handler.
-
-```typescript
-sdk.on('onSessionStart', (data) => { /* ... */ });
-sdk.on('onSessionWarning', ({ remainingSeconds }) => { /* ... */ });
-sdk.on('onSessionEnd', () => { /* ... */ });
-sdk.on('onError', (error) => { /* ... */ });
+```bash
+yarn add @marketplace/provider-sdk
 ```
 
-**`startTimer(): void`**
+### PNPM
 
-Manually start the countdown timer.
-
-**`pauseTimer(): void`**
-
-Pause the countdown timer.
-
-**`resumeTimer(): void`**
-
-Resume the paused timer.
-
-**`endSession(): void`**
-
-End the session and trigger cleanup.
-
-**`getRemainingTime(): number`**
-
-Get remaining seconds.
-
-**`getFormattedTime(): string`**
-
-Get formatted time as `MM:SS`.
-
-**`getFormattedTimeWithHours(): string`**
-
-Get formatted time as `HH:MM:SS`.
-
-**`getSessionData(): SessionData | null`**
-
-Get current session data.
-
-**`destroy(): void`**
-
-Cleanup and destroy SDK instance.
-
-#### Phase 2 Methods
-
-**`extendSession(additionalMinutes: number): Promise<void>`**
-
-Extend the current session by specified minutes. Charges additional tokens via backend API.
-
-```typescript
-// Extend session by 15 minutes
-await sdk.extendSession(15);
-
-// Extend by 1 hour
-await sdk.extendSession(60);
+```bash
+pnpm add @marketplace/provider-sdk
 ```
 
-**`completeSession(actualUsageMinutes?: number): Promise<void>`**
+## 🏗️ Basic Usage
 
-Complete the session early and trigger refund calculation. Returns unused tokens.
+### Vanilla JavaScript
 
-```typescript
-// Complete with calculated actual usage
-const now = Math.floor(Date.now() / 1000);
-const actualUsage = Math.ceil((now - session.startTime) / 60);
-await sdk.completeSession(actualUsage);
+```javascript
+import MarketplaceSDK from '@marketplace/provider-sdk';
 
-// Complete without usage calculation (SDK calculates)
-await sdk.completeSession();
+const sdk = new MarketplaceSDK({
+  jwtParamName: 'jwt',
+  applicationId: 'my-app',
+  jwksUrl: 'https://api.generalwisdom.com/.well-known/jwks.json',
+  
+  onSessionStart: async (context) => {
+    // Store user info
+    localStorage.setItem('user_id', context.userId);
+    localStorage.setItem('session_id', context.sessionId);
+    
+    // Show app UI
+    document.getElementById('app').style.display = 'block';
+  },
+  
+  onSessionEnd: async (context) => {
+    // Clear storage
+    localStorage.clear();
+    
+    // Hide app UI
+    document.getElementById('app').style.display = 'none';
+  },
+});
+
+await sdk.initialize();
+
+// Mount session header
+const header = sdk.createSessionHeader();
+header.mount('#session-header');
 ```
 
-### `SessionData`
+### React
 
 ```typescript
-interface SessionData {
-  sessionId: string;          // Unique session UUID
-  applicationId: string;      // Application ID
-  userId: string;             // User ID
-  orgId: string;              // Organization ID
-  startTime: number;          // Unix timestamp (seconds)
-  durationMinutes: number;    // Session duration
-  iat: number;                // Issued at (Unix seconds)
-  exp: number;                // Expires at (Unix seconds)
-  iss: string;                // Issuer
-  sub: string;                // Subject (user ID)
+import { useEffect } from 'react';
+import MarketplaceSDK from '@marketplace/provider-sdk';
+
+function useMarketplaceSession() {
+  useEffect(() => {
+    const sdk = new MarketplaceSDK({
+      jwtParamName: 'jwt',
+      applicationId: 'my-react-app',
+      jwksUrl: 'https://api.generalwisdom.com/.well-known/jwks.json',
+      
+      onSessionStart: async (context) => {
+        // Call your auth API
+        await authenticateUser(context);
+      },
+      
+      onSessionEnd: async (context) => {
+        // Clear auth state
+        await logout();
+      },
+    });
+
+    sdk.initialize();
+
+    return () => sdk.destroy();
+  }, []);
 }
 ```
 
-## 🛠️ Development
+See [INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md) for Vue, Chrome Extensions, and more.
 
-### Setup
+## 🎨 Session Header Component
 
-```bash
-# Install dependencies
-npm install
+Pre-built UI component for displaying session timer:
 
-# Generate test keys
-npm run generate-keys
+```typescript
+const header = sdk.createSessionHeader({
+  containerId: 'session-header',
+  theme: 'dark', // 'light' | 'dark' | 'auto'
+  showControls: true,
+  showEndButton: true,
+});
 
-# Start mock JWKS server
-node scripts/mock-jwks-server.js
+header.mount('#session-header');
 ```
 
-### Build
+**Custom Styling**:
 
-```bash
-# Build library (ESM + UMD)
-npm run build
+```css
+.gw-session-header {
+  background: #1a1a1a;
+  padding: 12px 24px;
+}
 
-# Watch mode
-npm run dev
+.gw-session-timer {
+  font-size: 18px;
+  color: #00ff88;
+}
+
+.gw-session-timer--warning {
+  color: #ff6b00;
+}
 ```
 
-### Testing
+## 🔐 Authentication Integration
 
-```bash
-# Run unit tests
-npm test
+### Exchange JWT for Your App's Tokens
 
-# Run tests in watch mode
-npm run test:watch
-
-# Generate coverage report
-npm run test:coverage
+```typescript
+onSessionStart: async (context) => {
+  // Send marketplace JWT to your backend
+  const response = await fetch('https://api.your-app.com/auth/marketplace', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${context.jwt}`,
+    },
+  });
+  
+  const { token } = await response.json();
+  
+  // Store your app's auth token
+  localStorage.setItem('auth_token', token);
+},
 ```
 
-## 📖 Examples
+**Backend Example** (Python/Flask):
+
+```python
+@app.route('/auth/marketplace', methods=['POST'])
+def marketplace_auth():
+    jwt_token = request.headers.get('Authorization').replace('Bearer ', '')
+    
+    # Validate JWT
+    claims = validate_marketplace_jwt(jwt_token)
+    
+    # Create/update user
+    user = get_or_create_user(claims['userId'], claims.get('email'))
+    
+    # Generate your app's token
+    app_token = generate_app_token(user)
+    
+    return jsonify({'token': app_token})
+```
+
+See [INTEGRATION_GUIDE.md#authentication-integration](./INTEGRATION_GUIDE.md#authentication-integration) for Cognito, Firebase, Auth0 examples.
+
+## ⚙️ Configuration
+
+### SDK Options
+
+```typescript
+interface SDKOptions {
+  // Required
+  jwtParamName: string;              // URL parameter name
+  applicationId: string;             // Your app ID
+  jwksUrl: string;                   // JWKS endpoint
+  onSessionStart: (context) => Promise<void>;
+  onSessionEnd: (context) => Promise<void>;
+  
+  // Optional
+  onSessionWarning?: (context) => Promise<void>;
+  onSessionExtend?: (context) => Promise<void>;
+  marketplaceUrl?: string;           // Redirect after session end
+  warningThresholdMinutes?: number;  // Default: 5
+  debug?: boolean;                   // Enable logging
+  pauseWhenHidden?: boolean;         // Auto-pause when tab hidden
+}
+```
+
+### JWT Structure
+
+```json
+{
+  "sessionId": "35iiYDoY1fSwSpYX22H8GP7x61o",
+  "applicationId": "your-app-id",
+  "userId": "a47884c8-50d1-7040-2de8-b7801699643c",
+  "orgId": "org-123",
+  "email": "user@example.com",
+  "startTime": 1763599337,
+  "durationMinutes": 60,
+  "exp": 1763602937,
+  "iat": 1763599337
+}
+```
+
+## 🧪 Testing
 
 ### Generate Test JWT
 
 ```bash
-# Generate 60-minute session
-npm run generate-jwt 60
-
-# Generate 120-minute session
-npm run generate-jwt 120
+npm run generate-keys     # Create RSA key pair (dev only)
+npm run generate-jwt 60   # Generate 60-minute JWT
 ```
 
-### Test with Vanilla JS
-
-1. Build the SDK: `npm run build`
-2. Generate JWT: `npm run generate-jwt 60`
-3. Start mock JWKS server: `node scripts/mock-jwks-server.js`
-4. Open `examples/vanilla-js/index.html` in browser
-5. Append JWT to URL: `?gwSession=<YOUR_JWT>`
-
-### Test with React
+### Test Server
 
 ```bash
-cd examples/react
+npm run test-server       # Start dev server at localhost:3000
+```
+
+Open: `http://localhost:3000?jwt=<YOUR_JWT>`
+
+See [TESTING_GUIDE.md](./TESTING_GUIDE.md) for unit, integration, and E2E testing.
+
+## 🛠️ Development
+
+### Build
+
+```bash
+npm run build         # Build for production
+npm run dev           # Watch mode
+```
+
+### Code Quality
+
+```bash
+npm run lint          # ESLint
+npm run format        # Prettier
+npm run type-check    # TypeScript
+```
+
+### Examples
+
+```bash
+cd examples/vanilla-js
 npm install
 npm run dev
 ```
 
-Open browser and append JWT to URL.
+## 📖 API Reference
 
-## 📖 Phase 2 Documentation
+### MarketplaceSDK
 
-For comprehensive Phase 2 documentation, see:
-
-- **[PHASE_2_COMPLETE.md](./PHASE_2_COMPLETE.md)** - Complete Phase 2 feature guide
-  - Testing guide with step-by-step instructions
-  - Configuration reference with recommended settings
-  - API reference for all Phase 2 endpoints
-  - Migration guide from Phase 1
-  - Bundle size analysis
-  - React hook documentation
-
-### Phase 2 Testing
-
-**Start Phase 2 Test Server:**
-```bash
-npm run test-server-p2
-```
-
-**Generate Short Test JWT:**
-```bash
-npm run generate-jwt 5  # 5 minutes for quick testing
-```
-
-**Open Test App:**
-```
-http://localhost:3000/provider?gwSession=<YOUR_JWT>
-```
-
-**What to Test:**
-- ❤️ Heartbeat logs in console (every 30s)
-- 🔄 Multi-tab sync (open in 2 tabs, pause in one)
-- 👁️ Visibility API (minimize tab, timer pauses)
-- ⏰ Session extension (click "Extend Session" button)
-- ✅ Early completion (click "Complete Early" button)
-
-### Phase 2 Recommended Config
-
-**Production (Full Features):**
 ```typescript
-useMarketplaceSession({
-  apiEndpoint: 'https://api.generalwisdom.com',
-  applicationId: 'your-app-id',
-  enableHeartbeat: true,           // ❤️ Track active usage
-  heartbeatIntervalSeconds: 30,    // Every 30 seconds
-  enableTabSync: true,              // 🔄 Handle multiple tabs
-  pauseOnHidden: true,              // 👁️ Battery-friendly
-  warningThresholdSeconds: 300,    // Warn at 5 minutes
-  debug: process.env.NODE_ENV === 'development',
-})
+class MarketplaceSDK {
+  constructor(options: SDKOptions)
+  
+  // Initialize SDK
+  async initialize(): Promise<void>
+  
+  // Session management
+  hasActiveSession(): boolean
+  getSession(): Session | null
+  async endSession(reason: string): Promise<void>
+  async extendSession(minutes: number): Promise<void>
+  
+  // UI components
+  createSessionHeader(options?: HeaderOptions): SessionHeader
+  
+  // Timer control
+  pauseTimer(): void
+  resumeTimer(): void
+  isTimerPaused(): boolean
+  
+  // Cleanup
+  destroy(): void
+}
 ```
 
-**Minimal (Phase 1 Only):**
+### Context Types
+
 ```typescript
-useMarketplaceSession({
-  applicationId: 'your-app-id',
-  // All Phase 2 features disabled by default
-})
+interface SessionStartContext {
+  sessionId: string;
+  applicationId: string;
+  userId: string;
+  orgId?: string;
+  email?: string;
+  startTime: number;
+  expiresAt: number;
+  durationMinutes: number;
+  jwt: string;
+}
+
+interface SessionEndContext {
+  sessionId: string;
+  userId: string;
+  reason: 'expired' | 'manual' | 'error';
+  actualDurationMinutes: number;
+}
 ```
 
-## 🔐 Security
+See [INTEGRATION_GUIDE.md#api-reference](./INTEGRATION_GUIDE.md#api-reference) for complete API documentation.
 
-### JWT Validation
+## 🚀 Production Deployment
 
-The SDK performs comprehensive JWT validation:
+### Checklist
 
-1. **Signature Verification**: RS256 using JWKS public key
-2. **Expiration Check**: Validates `exp` claim
-3. **Issuer Validation**: Verifies `iss` claim
-4. **Application ID Check**: Optional validation of `applicationId`
-5. **Required Claims**: Ensures all required claims present
+- [ ] Update `jwksUrl` to production endpoint
+- [ ] Set correct `applicationId`
+- [ ] Enable HTTPS for all endpoints
+- [ ] Configure proper CORS headers
+- [ ] Set up secrets management
+- [ ] Enable rate limiting
+- [ ] Configure monitoring and logging
+- [ ] Test with production JWT
+- [ ] Load test auth endpoints
 
-### Best Practices
+See [INTEGRATION_GUIDE.md#production-deployment](./INTEGRATION_GUIDE.md#production-deployment) for complete checklist.
 
-- ✅ Always use HTTPS in production
-- ✅ Validate JWT on every request
-- ✅ Set appropriate warning thresholds
-- ✅ Handle session expiration gracefully
-- ✅ Never log JWT tokens
-- ❌ Don't store JWTs in localStorage (XSS risk)
-- ❌ Don't share JWTs between users
+## 🐛 Troubleshooting
 
-## 📝 License
+### Common Issues
 
-MIT © General Wisdom
+**JWT validation failed**
+- Check JWKS URL is correct
+- Verify applicationId matches
+- Ensure JWT not expired
+
+**Session header not showing**
+- Verify mount element exists
+- Check SDK initialized
+- Confirm active session
+
+**Auth server 500 error**
+- Check Cognito configuration
+- Verify client secret (if required)
+- Review server logs
+
+See [INTEGRATION_GUIDE.md#troubleshooting](./INTEGRATION_GUIDE.md#troubleshooting) for detailed solutions.
+
+## 📚 Resources
+
+- **[Integration Guide](./INTEGRATION_GUIDE.md)** - Complete integration reference
+- **[Quick Start](./QUICKSTART.md)** - Get started in 3 minutes
+- **[Testing Guide](./TESTING_GUIDE.md)** - Testing strategies
+- **[JWT Spec](./jwt-specification.md)** - Token format details
+- **[Examples](./examples/)** - Sample implementations
+- **[GhostDog Integration](../extension-ghostdog/MARKETPLACE_INTEGRATION.md)** - Real-world example
 
 ## 🤝 Contributing
 
-Contributions welcome! Please read our contributing guidelines first.
+Contributions welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) first.
 
-## 📞 Support
+## 📄 License
 
-- **Issues**: [GitHub Issues](https://github.com/your-org/gw-sdk/issues)
+MIT License - see [LICENSE](./LICENSE) file for details
+
+## 🆘 Support
+
+- **Issues**: [GitHub Issues](https://github.com/your-org/marketplace-sdk/issues)
 - **Email**: support@generalwisdom.com
-- **Docs**: [https://docs.generalwisdom.com](https://docs.generalwisdom.com)
+- **Docs**: [docs.generalwisdom.com](https://docs.generalwisdom.com)
+
+## 📊 Changelog
+
+### v2.0.0 (Phase 2)
+- Heartbeat system
+- Multi-tab coordination
+- Session extension
+- Early completion
+- Visibility API integration
+
+### v1.0.0 (Phase 1)
+- Initial release
+- JWT validation with JWKS
+- Session timer management
+- Lifecycle hooks
+- Session header component
 
 ---
 
-**Made with ❤️ by the General Wisdom team**
+**Built with ❤️ by the General Wisdom team**

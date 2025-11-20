@@ -6,7 +6,7 @@ import { TabSyncManager, TabSyncMessage } from './TabSyncManager';
 import { WarningModal } from '../ui/WarningModal';
 import { extractTokenFromURL } from '../utils/url';
 import { Logger } from '../utils/logger';
-import { SDKConfig, SDKEvents, SessionData, SDKError } from '../types';
+import { SDKConfig, SDKEvents, SessionData, SDKError, SessionStartContext, SessionEndContext, SessionExtendContext, SessionWarningContext } from '../types';
 
 /**
  * Marketplace SDK with Phase 2 Features
@@ -27,6 +27,7 @@ export class MarketplaceSDK {
   private events: Partial<SDKEvents> = {};
   private sessionData: SessionData | null = null;
   private jwtToken: string | null = null;
+  private endReason: 'expired' | 'manual' | 'error' = 'manual';
 
   constructor(config: SDKConfig) {
     this.config = {
@@ -45,6 +46,9 @@ export class MarketplaceSDK {
       enableTabSync: config.enableTabSync ?? false,
       pauseOnHidden: config.pauseOnHidden ?? false,
       useBackendValidation: config.useBackendValidation ?? false,
+      // Lifecycle hooks
+      hooks: config.hooks ?? {},
+      hookTimeoutMs: config.hookTimeoutMs ?? 5000,
     };
 
     this.validator = new JWKSValidator(this.config.jwksUri, this.config.debug);
@@ -68,19 +72,90 @@ export class MarketplaceSDK {
   }
 
   /**
+   * Execute a lifecycle hook with timeout
+   */
+  private async executeHook<T>(
+    hookName: string,
+    hook: ((context: T) => Promise<void> | void) | undefined,
+    context: T,
+    isStrict: boolean = true
+  ): Promise<void> {
+    if (!hook) return;
+
+    this.logger.log(`Calling ${hookName} hook`);
+
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new SDKError(`${hookName} hook timeout after ${this.config.hookTimeoutMs}ms`, 'HOOK_TIMEOUT')),
+        this.config.hookTimeoutMs
+      )
+    );
+
+    try {
+      await Promise.race([
+        Promise.resolve(hook(context)),
+        timeout
+      ]);
+      this.logger.log(`${hookName} hook completed successfully`);
+    } catch (error) {
+      this.logger.error(`${hookName} hook failed:`, error);
+
+      if (isStrict) {
+        // Strict mode: throw error to prevent session operation
+        throw new SDKError(
+          `${hookName} hook failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          'HOOK_ERROR'
+        );
+      } else {
+        // Lenient mode: log but don't throw
+        this.logger.warn(`${hookName} hook failed but continuing (lenient mode)`);
+      }
+    }
+  }
+
+  /**
+   * Calculate actual session duration in minutes
+   */
+  private calculateActualDuration(): number | undefined {
+    if (!this.sessionData) return undefined;
+    const now = Math.floor(Date.now() / 1000);
+    const durationSeconds = now - this.sessionData.startTime;
+    return Math.ceil(durationSeconds / 60);
+  }
+
+  /**
    * Initialize SDK and validate session
    */
   async initialize(): Promise<SessionData> {
     this.logger.info('Initializing session...');
 
     try {
-      // Extract JWT from URL
-      this.jwtToken = extractTokenFromURL('gwSession');
+      // Extract JWT from URL or retrieve from storage
+      const JWT_STORAGE_KEY = 'gw_marketplace_jwt';
+
+      // First try URL parameter
+      this.jwtToken = extractTokenFromURL('jwt');
+
+      // If not in URL, try storage (for persistence through OAuth redirects)
+      if (!this.jwtToken && typeof sessionStorage !== 'undefined') {
+        this.jwtToken = sessionStorage.getItem(JWT_STORAGE_KEY);
+        if (this.jwtToken) {
+          this.logger.log('JWT token retrieved from storage');
+        }
+      }
+
+      // Still no token? Error out
       if (!this.jwtToken) {
         throw new SDKError(
-          'No gwSession token found in URL',
+          'No jwt token found in URL or storage',
           'MISSING_TOKEN'
         );
+      }
+
+      // Store JWT for persistence through navigation
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem(JWT_STORAGE_KEY, this.jwtToken);
+        this.logger.log('JWT token stored in sessionStorage');
       }
 
       this.logger.log('JWT token extracted from URL');
@@ -130,16 +205,45 @@ export class MarketplaceSDK {
 
       this.logger.log('Remaining time:', remainingSeconds, 'seconds');
 
+      // Call onSessionStart hook if provided (STRICT - failure prevents session start)
+      if (this.config.hooks?.onSessionStart) {
+        const startContext: SessionStartContext = {
+          sessionId: this.sessionData.sessionId,
+          userId: this.sessionData.userId,
+          email: (verifiedClaims as any).email, // May not be in all JWTs
+          orgId: this.sessionData.orgId,
+          applicationId: this.sessionData.applicationId,
+          durationMinutes: this.sessionData.durationMinutes,
+          expiresAt: this.sessionData.exp,
+          jwt: this.jwtToken!,
+        };
+
+        await this.executeHook('onSessionStart', this.config.hooks.onSessionStart, startContext, true);
+        this.logger.log('Application auth synchronized with marketplace session');
+      }
+
       // Initialize timer
       this.timer = new TimerManager(
         remainingSeconds,
         this.config.warningThresholdSeconds,
         {
           onSessionWarning: (data) => {
+            // Call warning hook if provided (lenient)
+            if (this.config.hooks?.onSessionWarning) {
+              const warningContext: SessionWarningContext = {
+                sessionId: this.sessionData!.sessionId,
+                userId: this.sessionData!.userId,
+                remainingSeconds: data.remainingSeconds,
+              };
+              this.executeHook('onSessionWarning', this.config.hooks.onSessionWarning, warningContext, false)
+                .catch(error => this.logger.error('onSessionWarning hook failed:', error));
+            }
+
             this.showWarningModal(data.remainingSeconds);
             this.events.onSessionWarning?.(data);
           },
           onSessionEnd: () => {
+            this.endReason = 'expired'; // Track that this was an expiration
             this.endSession();
           },
         },
@@ -369,6 +473,18 @@ export class MarketplaceSDK {
       // Broadcast to other tabs
       this.tabSync?.broadcast('timer_update', { remainingSeconds });
 
+      // Call onSessionExtend hook if provided
+      if (this.config.hooks?.onSessionExtend) {
+        const extendContext: SessionExtendContext = {
+          sessionId: this.sessionData.sessionId,
+          userId: this.sessionData.userId,
+          additionalMinutes,
+          newExpiresAt: data.new_expires_at,
+        };
+
+        await this.executeHook('onSessionExtend', this.config.hooks.onSessionExtend, extendContext, false);
+      }
+
       this.logger.info('Session extended successfully');
 
     } catch (error) {
@@ -436,8 +552,27 @@ export class MarketplaceSDK {
   /**
    * End session
    */
-  endSession(): void {
+  async endSession(): Promise<void> {
     this.logger.info('Ending session...');
+
+    // Build session end context
+    const endContext: SessionEndContext = {
+      sessionId: this.sessionData?.sessionId || '',
+      userId: this.sessionData?.userId || '',
+      reason: this.endReason,
+      actualDurationMinutes: this.calculateActualDuration(),
+    };
+
+    // Call onSessionEnd hook if provided (LENIENT - errors logged but don't block)
+    if (this.config.hooks?.onSessionEnd) {
+      try {
+        await this.executeHook('onSessionEnd', this.config.hooks.onSessionEnd, endContext, false);
+        this.logger.log('Application auth cleanup completed');
+      } catch (error) {
+        // This shouldn't throw due to lenient mode, but catch anyway
+        this.logger.error('onSessionEnd hook error (continuing anyway):', error);
+      }
+    }
 
     // Stop timer
     this.timer?.stop();
@@ -447,6 +582,12 @@ export class MarketplaceSDK {
 
     // Broadcast to other tabs
     this.tabSync?.broadcast('end');
+
+    // Clear JWT from storage
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem('gw_marketplace_jwt');
+      this.logger.log('JWT token cleared from storage');
+    }
 
     // Trigger end event
     this.events.onSessionEnd?.();
@@ -559,6 +700,13 @@ export class MarketplaceSDK {
     this.heartbeat?.stop();
     this.tabSync?.destroy();
     this.modal?.hide();
+
+    // Clear JWT from storage
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem('gw_marketplace_jwt');
+      this.logger.log('JWT token cleared from storage');
+    }
+
     this.sessionData = null;
     this.jwtToken = null;
   }
