@@ -64,49 +64,8 @@ resource "aws_codeartifact_repository" "sdk" {
   }
 }
 
-# IAM policy for CodeArtifact access (for Bitbucket pipeline)
-data "aws_iam_role" "bitbucket_pipeline" {
-  name = "BitbucketPipelineRole-ghostdog-dev"
-}
-
-# Attach CodeArtifact permissions to existing Bitbucket OIDC role
-resource "aws_iam_role_policy" "codeartifact_publish" {
-  name = "CodeArtifactPublishPolicy"
-  role = data.aws_iam_role.bitbucket_pipeline.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "codeartifact:GetAuthorizationToken",
-          "codeartifact:GetRepositoryEndpoint",
-          "codeartifact:ReadFromRepository"
-        ]
-        Resource = "*"
-      },
-      {
-        Effect = "Allow"
-        Action = [
-          "codeartifact:PublishPackageVersion",
-          "codeartifact:PutPackageMetadata"
-        ]
-        Resource = "${aws_codeartifact_repository.sdk.arn}/*"
-      },
-      {
-        Effect = "Allow"
-        Action = "sts:GetServiceBearerToken"
-        Resource = "*"
-        Condition = {
-          StringEquals = {
-            "sts:AudRaw" = "codeartifact.amazonaws.com"
-          }
-        }
-      }
-    ]
-  })
-}
+# Note: Bitbucket pipeline role already has admin privileges
+# No additional IAM policies needed for CodeArtifact access
 
 # Data sources
 data "aws_caller_identity" "current" {}
