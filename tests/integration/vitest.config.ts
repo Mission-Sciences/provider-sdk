@@ -44,6 +44,14 @@ export default defineConfig({
 
     // Retry failed tests
     retry: 0, // Don't retry integration tests by default
+
+    // Pool options - use forks for better isolation and AbortController compatibility
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        singleFork: false,
+      },
+    },
   },
 
   resolve: {
