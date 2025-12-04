@@ -44,3 +44,9 @@ test-keys/
 # Temporary files
 tmp/
 temp/
+
+# Validation artifacts
+validation-evidence/
+validation-*.log
+report.json
+report.md
