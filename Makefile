@@ -141,3 +141,8 @@ ci: lint test build ## Run full CI checks locally
 .PHONY: check
 check: lint test ## Quick check before commit
 	@echo "✓ Code quality checks passed"
+
+# Validation Cleanup
+.PHONY: cleanup-validation
+cleanup-validation: ## Clean up validation artifacts
+	@./scripts/cleanup-validation.sh
