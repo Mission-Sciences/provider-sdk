@@ -6,6 +6,50 @@
 
 ---
 
+## Pre-Validation Checks (MANDATORY)
+
+Before starting any validation work, the validation agent MUST check for the `needs-human` label:
+
+### Check for needs-human Label
+
+```bash
+# Check if issue has needs-human label
+ISSUE_LABELS=$(curl -s -H "Authorization: Bearer $JIRA_TOKEN" \
+  "https://ghostdogbase.atlassian.net/rest/api/2/issue/${JIRA_ISSUE_KEY}" | \
+  jq -r '.fields.labels[]' 2>/dev/null)
+
+if echo "$ISSUE_LABELS" | grep -q "needs-human"; then
+    echo "⚠️ Issue ${JIRA_ISSUE_KEY} has 'needs-human' label - skipping validation"
+    echo "This issue requires human review before automated validation can proceed."
+    exit 0  # Exit cleanly, no error
+fi
+```
+
+**If the issue has `needs-human` label:**
+- **STOP** - Do not proceed with validation
+- **EXIT** cleanly (exit code 0)
+- **DO NOT** report an error
+- The issue requires human intervention before automated validation can continue
+
+### Failed Validation Handling
+
+**After validation fails twice:**
+1. Add the `needs-human` label to the Jira issue
+2. Leave the issue in VALIDATION status (do not transition)
+3. Add a comment explaining the blocking issues
+4. Automated validation will skip the issue until a human removes the label
+
+```bash
+# Example: Adding needs-human label after second failure
+if [ "$VALIDATION_FAILURE_COUNT" -ge 2 ]; then
+    # Add needs-human label via Jira API or MCP
+    echo "🚨 Marking issue as needs-human after 2 failed validations"
+    # Keep issue in VALIDATION status - do not transition
+fi
+```
+
+---
+
 ## Overview
 
 This document provides instructions for validation agents to objectively verify work completed by implementation agents. Validation goes beyond "run the tests" to include:
