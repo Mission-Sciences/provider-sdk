@@ -466,15 +466,35 @@ jobs:
           # Wait for package to be available
           sleep 5
 
-          # List package versions to verify publication
-          aws codeartifact list-package-versions \
-            --domain ${{ needs.terraform-apply.outputs.codeartifact-domain || env.CODEARTIFACT_DOMAIN }} \
-            --repository ${{ needs.terraform-apply.outputs.codeartifact-repository || env.CODEARTIFACT_REPOSITORY }} \
-            --format npm \
-            --package "${PACKAGE_NAME}" \
-            --region ${{ env.AWS_REGION }} \
-            --query "versions[?version=='${PACKAGE_VERSION}']" \
-            --output json
+          # Extract namespace and package name for scoped packages
+          if [[ $PACKAGE_NAME == @* ]]; then
+            # Scoped package: @namespace/package
+            NAMESPACE=$(echo $PACKAGE_NAME | cut -d'/' -f1 | sed 's/@//')
+            PKG_NAME=$(echo $PACKAGE_NAME | cut -d'/' -f2)
+
+            echo "Scoped package detected: namespace=$NAMESPACE, package=$PKG_NAME"
+
+            # List package versions with namespace
+            aws codeartifact list-package-versions \
+              --domain ${{ needs.terraform-apply.outputs.codeartifact-domain || env.CODEARTIFACT_DOMAIN }} \
+              --repository ${{ needs.terraform-apply.outputs.codeartifact-repository || env.CODEARTIFACT_REPOSITORY }} \
+              --format npm \
+              --namespace "${NAMESPACE}" \
+              --package "${PKG_NAME}" \
+              --region ${{ env.AWS_REGION }} \
+              --query "versions[?version=='${PACKAGE_VERSION}']" \
+              --output json
+          else
+            # Unscoped package
+            aws codeartifact list-package-versions \
+              --domain ${{ needs.terraform-apply.outputs.codeartifact-domain || env.CODEARTIFACT_DOMAIN }} \
+              --repository ${{ needs.terraform-apply.outputs.codeartifact-repository || env.CODEARTIFACT_REPOSITORY }} \
+              --format npm \
+              --package "${PACKAGE_NAME}" \
+              --region ${{ env.AWS_REGION }} \
+              --query "versions[?version=='${PACKAGE_VERSION}']" \
+              --output json
+          fi
 
           echo "✅ Package verified in CodeArtifact"
 
