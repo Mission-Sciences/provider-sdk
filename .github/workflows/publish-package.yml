@@ -549,9 +549,24 @@ jobs:
           # registry-url creates .npmrc with token placeholder
           # Trusted publisher uses OIDC, no token needed
 
-      # Upgrade to latest npm for better OIDC/provenance support
-      - name: Upgrade npm to latest
-        run: npm install -g npm@latest
+      # Upgrade to npm 11.5.1+ (REQUIRED for trusted publisher OIDC)
+      # Per: https://github.com/orgs/community/discussions/174044
+      - name: Upgrade npm for trusted publisher
+        run: |
+          echo "Current npm version:"
+          npm --version
+          echo "Upgrading to npm@latest..."
+          npm install -g npm@latest
+          echo "New npm version:"
+          npm --version
+          # Verify >= 11.5.1
+          NPM_VERSION=$(npm --version)
+          if [ "$(printf '%s\n' "11.5.1" "$NPM_VERSION" | sort -V | head -n1)" = "11.5.1" ]; then
+            echo "✅ npm $NPM_VERSION supports trusted publisher"
+          else
+            echo "❌ npm $NPM_VERSION too old for trusted publisher (need 11.5.1+)"
+            exit 1
+          fi
 
       # Download build artifacts from test-and-build job
       - name: Download build artifacts
