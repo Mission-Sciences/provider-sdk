@@ -50,7 +50,7 @@
 name: Build and Publish Package
 
 on:
-  # Trigger on push to main branch (only for source code changes)
+  # Trigger on push to main branch (source code and workflow changes)
   push:
     branches:
       - main
@@ -60,6 +60,7 @@ on:
       - 'package-lock.json'
       - 'tsconfig.json'
       - 'vite.config.ts'
+      - '.github/workflows/**'
 
   # Trigger on release published (versioned releases)
   release:
