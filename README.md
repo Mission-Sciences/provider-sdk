@@ -5,14 +5,16 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue)](https://www.typescriptlang.org/)
 
+> **📦 Migration Notice**: This package has been renamed from `@marketplace/provider-sdk` to `@mission_sciences/provider-sdk`. Please update your dependencies. See [Migration Guide](#-migration-from-marketplaceprovider-sdk) below.
+
 ## 🚀 Quick Start
 
 ```bash
 # Install
-npm install @marketplace/provider-sdk
+npm install @mission_sciences/provider-sdk
 
 # Initialize
-import MarketplaceSDK from '@marketplace/provider-sdk';
+import MarketplaceSDK from '@mission_sciences/provider-sdk';
 
 const sdk = new MarketplaceSDK({
   jwtParamName: 'jwt',
@@ -80,19 +82,19 @@ When users launch your app from the marketplace:
 ### NPM
 
 ```bash
-npm install @marketplace/provider-sdk
+npm install @mission_sciences/provider-sdk
 ```
 
 ### Yarn
 
 ```bash
-yarn add @marketplace/provider-sdk
+yarn add @mission_sciences/provider-sdk
 ```
 
 ### PNPM
 
 ```bash
-pnpm add @marketplace/provider-sdk
+pnpm add @mission_sciences/provider-sdk
 ```
 
 ## 🏗️ Basic Usage
@@ -100,7 +102,7 @@ pnpm add @marketplace/provider-sdk
 ### Vanilla JavaScript
 
 ```javascript
-import MarketplaceSDK from '@marketplace/provider-sdk';
+import MarketplaceSDK from '@mission_sciences/provider-sdk';
 
 const sdk = new MarketplaceSDK({
   jwtParamName: 'jwt',
@@ -136,7 +138,7 @@ header.mount('#session-header');
 
 ```typescript
 import { useEffect } from 'react';
-import MarketplaceSDK from '@marketplace/provider-sdk';
+import MarketplaceSDK from '@mission_sciences/provider-sdk';
 
 function useMarketplaceSession() {
   useEffect(() => {
@@ -424,6 +426,40 @@ See [INTEGRATION_GUIDE.md#troubleshooting](./INTEGRATION_GUIDE.md#troubleshootin
 - **[Examples](./examples/)** - Sample implementations
 - **[GhostDog Integration](../extension-ghostdog/MARKETPLACE_INTEGRATION.md)** - Real-world example
 
+## 📦 Migration from @marketplace/provider-sdk
+
+If you're upgrading from the old `@marketplace/provider-sdk` package:
+
+### Step 1: Update package.json
+
+```bash
+npm uninstall @marketplace/provider-sdk
+npm install @mission_sciences/provider-sdk
+```
+
+### Step 2: Update imports
+
+```typescript
+// Old
+import MarketplaceSDK from '@marketplace/provider-sdk';
+
+// New
+import MarketplaceSDK from '@mission_sciences/provider-sdk';
+```
+
+### Step 3: Remove old registry config (if using CodeArtifact)
+
+Remove or update your `.npmrc` file:
+
+```bash
+# Old (remove this)
+@marketplace:registry=https://ghostdogbase-540845145946.d.codeartifact.us-east-1.amazonaws.com/npm/sdk-packages/
+
+# New (use default npm registry - no configuration needed)
+```
+
+**Note**: The API is 100% compatible. No code changes required beyond the package name!
+
 ## 🤝 Contributing
 
 Contributions welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) first.
@@ -434,7 +470,7 @@ MIT License - see [LICENSE](./LICENSE) file for details
 
 ## 🆘 Support
 
-- **Issues**: [GitHub Issues](https://github.com/your-org/marketplace-sdk/issues)
+- **Issues**: [GitHub Issues](https://github.com/Mission-Sciences/provider-sdk/issues)
 - **Email**: support@generalwisdom.com
 - **Docs**: [docs.generalwisdom.com](https://docs.generalwisdom.com)
 

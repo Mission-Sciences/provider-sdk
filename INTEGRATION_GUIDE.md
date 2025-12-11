@@ -5,6 +5,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue)](https://www.typescriptlang.org/)
 
+> **📦 Package Renamed**: This package is now `@mission_sciences/provider-sdk` (formerly `@marketplace/provider-sdk`). All examples use the new package name.
+
 ## Table of Contents
 
 - [Introduction](#introduction)
@@ -82,28 +84,59 @@ Your application must be registered in the General Wisdom marketplace with:
 
 ## Installation
 
+The SDK is available on the public npm registry. No special configuration required!
+
 ### NPM
 
 ```bash
-npm install @marketplace/provider-sdk
+npm install @mission_sciences/provider-sdk
 ```
 
 ### Yarn
 
 ```bash
-yarn add @marketplace/provider-sdk
+yarn add @mission_sciences/provider-sdk
 ```
 
 ### PNPM
 
 ```bash
-pnpm add @marketplace/provider-sdk
+pnpm add @mission_sciences/provider-sdk
 ```
 
 ### CDN (Development Only)
 
 ```html
-<script src="https://unpkg.com/@marketplace/provider-sdk/dist/index.umd.js"></script>
+<script src="https://unpkg.com/@mission_sciences/provider-sdk/dist/index.umd.js"></script>
+```
+
+### Serving SDK in Non-Bundled Applications
+
+For simple applications without a bundler (like the JWT demo), you can serve the SDK files directly:
+
+**Express.js example:**
+
+```javascript
+const path = require('path');
+
+// Serve SDK from node_modules
+app.use(
+  '/sdk',
+  express.static(
+    path.join(__dirname, 'node_modules/@mission_sciences/provider-sdk/dist')
+  )
+);
+```
+
+**HTML usage:**
+
+```html
+<!-- Load SDK via UMD build -->
+<script src="/sdk/marketplace-sdk.umd.js"></script>
+<script>
+  const { MarketplaceSDK } = window.MarketplaceSDK;
+  // Initialize SDK...
+</script>
 ```
 
 ---
@@ -113,7 +146,7 @@ pnpm add @marketplace/provider-sdk
 ### 1. Basic Initialization
 
 ```typescript
-import MarketplaceSDK from '@marketplace/provider-sdk';
+import MarketplaceSDK from '@mission_sciences/provider-sdk';
 
 // Initialize SDK
 const sdk = new MarketplaceSDK({
@@ -224,7 +257,7 @@ The marketplace JWT contains:
 **File**: `src/marketplace.js`
 
 ```javascript
-import MarketplaceSDK from '@marketplace/provider-sdk';
+import MarketplaceSDK from '@mission_sciences/provider-sdk';
 
 // Initialize SDK
 const sdk = new MarketplaceSDK({
@@ -307,8 +340,8 @@ window.marketplaceSDK = sdk;
 
 ```typescript
 import { useEffect, useState } from 'react';
-import MarketplaceSDK from '@marketplace/provider-sdk';
-import type { SessionStartContext, SessionEndContext } from '@marketplace/provider-sdk';
+import MarketplaceSDK from '@mission_sciences/provider-sdk';
+import type { SessionStartContext, SessionEndContext } from '@mission_sciences/provider-sdk';
 
 interface SessionState {
   isActive: boolean;
@@ -428,7 +461,7 @@ export function App() {
 
 ```typescript
 import { useEffect, useRef } from 'react';
-import type MarketplaceSDK from '@marketplace/provider-sdk';
+import type MarketplaceSDK from '@mission_sciences/provider-sdk';
 
 interface Props {
   sdk: MarketplaceSDK | null;
@@ -461,8 +494,8 @@ export default function SessionHeader({ sdk }: Props) {
 
 ```typescript
 import { ref, onMounted, onUnmounted } from 'vue';
-import MarketplaceSDK from '@marketplace/provider-sdk';
-import type { SessionStartContext, SessionEndContext } from '@marketplace/provider-sdk';
+import MarketplaceSDK from '@mission_sciences/provider-sdk';
+import type { SessionStartContext, SessionEndContext } from '@mission_sciences/provider-sdk';
 
 export function useMarketplaceSession() {
   const sdk = ref<MarketplaceSDK | null>(null);
@@ -547,7 +580,7 @@ const { sdk, session } = useMarketplaceSession();
 **Background Script**: `src/background.ts`
 
 ```typescript
-import MarketplaceSDK from '@marketplace/provider-sdk';
+import MarketplaceSDK from '@mission_sciences/provider-sdk';
 
 // Initialize SDK in background
 const sdk = new MarketplaceSDK({
@@ -1551,7 +1584,7 @@ onSessionStart: async (context: SessionStartContext) => {
 
 ```typescript
 import { describe, it, expect, beforeEach } from 'vitest';
-import MarketplaceSDK from '@marketplace/provider-sdk';
+import MarketplaceSDK from '@mission_sciences/provider-sdk';
 
 describe('MarketplaceSDK', () => {
   let sdk: MarketplaceSDK;
@@ -1588,7 +1621,7 @@ describe('MarketplaceSDK', () => {
 
 ```typescript
 import { describe, it, expect } from 'vitest';
-import MarketplaceSDK from '@marketplace/provider-sdk';
+import MarketplaceSDK from '@mission_sciences/provider-sdk';
 
 describe('Session Flow', () => {
   it('completes full session lifecycle', async () => {
@@ -2063,7 +2096,7 @@ interface SessionExtendContext {
 
 ## Additional Resources
 
-- **GitHub Repository**: [github.com/your-org/marketplace-sdk](https://github.com/your-org/marketplace-sdk)
+- **GitHub Repository**: [github.com/Mission-Sciences/provider-sdk](https://github.com/Mission-Sciences/provider-sdk)
 - **API Documentation**: [docs.generalwisdom.com/provider-sdk](https://docs.generalwisdom.com/provider-sdk)
 - **Example Apps**: See `examples/` directory in SDK repository
 - **Support**: support@generalwisdom.com
@@ -2099,4 +2132,4 @@ MIT License - see [LICENSE](./LICENSE) file for details
 
 **Questions? Issues? Feedback?**
 
-Open an issue on [GitHub](https://github.com/your-org/marketplace-sdk/issues) or contact support@generalwisdom.com
+Open an issue on [GitHub](https://github.com/Mission-Sciences/provider-sdk/issues) or contact support@generalwisdom.com

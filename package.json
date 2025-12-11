@@ -1,6 +1,6 @@
 {
-  "name": "@marketplace/provider-sdk",
-  "version": "0.1.0",
+  "name": "@mission_sciences/provider-sdk",
+  "version": "0.1.1",
   "description": "Provider SDK for JWT-based marketplace session management",
   "type": "module",
   "main": "./dist/marketplace-sdk.umd.js",
@@ -41,7 +41,15 @@
     "jwks",
     "rs256"
   ],
-  "author": "General Wisdom",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mission-Sciences/provider-sdk.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Mission-Sciences/provider-sdk/issues"
+  },
+  "homepage": "https://github.com/Mission-Sciences/provider-sdk#readme",
+  "author": "Mission Sciences",
   "license": "MIT",
   "devDependencies": {
     "@aws-sdk/client-cognito-identity-provider": "^3.931.0",
@@ -64,7 +72,7 @@
     "jose": "^6.1.0"
   },
   "peerDependencies": {
-    "react": "^18.0.0"
+    "react": "^18.0.0 || ^19.0.0"
   },
   "peerDependenciesMeta": {
     "react": {
