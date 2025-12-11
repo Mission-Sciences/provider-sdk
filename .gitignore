@@ -50,3 +50,6 @@ validation-evidence/
 validation-*.log
 report.json
 report.md
+
+# Git worktrees for parallel agent work
+.worktrees/
