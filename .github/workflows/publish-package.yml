@@ -549,6 +549,10 @@ jobs:
           # registry-url creates .npmrc with token placeholder
           # Trusted publisher uses OIDC, no token needed
 
+      # Upgrade to latest npm for better OIDC/provenance support
+      - name: Upgrade npm to latest
+        run: npm install -g npm@latest
+
       # Download build artifacts from test-and-build job
       - name: Download build artifacts
         uses: actions/download-artifact@v4
