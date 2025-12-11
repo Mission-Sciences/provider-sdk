@@ -191,16 +191,30 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs: test-and-build
-    # Only run on main branch pushes (not releases) AND when secrets are configured
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.API_BASE_URL != '' && secrets.COGNITO_USER_POOL_ID != '' && secrets.TEST_USERNAME != ''
+    # Only run on main branch pushes (not releases)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
+      # Check if secrets are configured
+      - name: Check integration test configuration
+        id: check-config
+        run: |
+          if [ -z "${{ secrets.API_BASE_URL }}" ] || [ -z "${{ secrets.COGNITO_USER_POOL_ID }}" ] || [ -z "${{ secrets.TEST_USERNAME }}" ]; then
+            echo "⚠️ Integration test secrets not configured - skipping tests"
+            echo "configured=false" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Integration test secrets configured"
+            echo "configured=true" >> $GITHUB_OUTPUT
+          fi
+
       # Checkout repository code
       - name: Checkout code
+        if: steps.check-config.outputs.configured == 'true'
         uses: actions/checkout@v4
 
       # Setup Node.js with npm caching
       - name: Setup Node.js
+        if: steps.check-config.outputs.configured == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -208,10 +222,12 @@ jobs:
 
       # Install dependencies
       - name: Install dependencies
+        if: steps.check-config.outputs.configured == 'true'
         run: npm ci
 
       # Configure AWS credentials via OIDC for integration tests
       - name: Configure AWS credentials via OIDC
+        if: steps.check-config.outputs.configured == 'true'
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
@@ -220,6 +236,7 @@ jobs:
 
       # Run integration tests with live API
       - name: Run integration tests
+        if: steps.check-config.outputs.configured == 'true'
         run: npm run test:integration
         env:
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
