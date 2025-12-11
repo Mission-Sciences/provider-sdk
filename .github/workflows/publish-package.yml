@@ -192,12 +192,7 @@ jobs:
     timeout-minutes: 30
     needs: test-and-build
     # Only run on main branch pushes (not releases) AND when secrets are configured
-    if: |
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main' &&
-      secrets.API_BASE_URL != '' &&
-      secrets.COGNITO_USER_POOL_ID != '' &&
-      secrets.TEST_USERNAME != ''
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && secrets.API_BASE_URL != '' && secrets.COGNITO_USER_POOL_ID != '' && secrets.TEST_USERNAME != ''
 
     steps:
       # Checkout repository code
