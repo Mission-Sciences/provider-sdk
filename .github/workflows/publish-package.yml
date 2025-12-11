@@ -539,13 +539,15 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Setup Node.js with npm registry configuration for provenance
+      # Setup Node.js WITHOUT registry-url (not needed for trusted publisher)
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-          registry-url: 'https://registry.npmjs.org'
+          # IMPORTANT: No registry-url when using trusted publisher
+          # registry-url creates .npmrc with token placeholder
+          # Trusted publisher uses OIDC, no token needed
 
       # Download build artifacts from test-and-build job
       - name: Download build artifacts
