@@ -559,6 +559,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Remove any .npmrc that might have been created (enables OIDC auth)
+      - name: Clean npm config for trusted publisher
+        run: |
+          rm -f .npmrc ~/.npmrc
+          echo "✅ Removed any existing .npmrc files to enable OIDC authentication"
+
       # Publish package to npm registry with provenance
       # Note: No NPM_TOKEN required - uses OIDC authentication via id-token permission
       - name: Publish to npm with provenance
