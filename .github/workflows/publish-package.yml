@@ -569,9 +569,21 @@ jobs:
       # Note: No NPM_TOKEN required - uses OIDC authentication via id-token permission
       - name: Publish to npm with provenance
         id: publish
+        env:
+          # CRITICAL: Unset these vars to force OIDC authentication
+          NODE_AUTH_TOKEN: ''
+          NPM_CONFIG_USERCONFIG: ''
         run: |
           PACKAGE_VERSION="${{ needs.test-and-build.outputs.package-version }}"
           echo "Publishing version $PACKAGE_VERSION to npm registry with provenance..."
+
+          # Unset environment variables that interfere with OIDC
+          unset NODE_AUTH_TOKEN
+          unset NPM_CONFIG_USERCONFIG
+
+          # Verify no auth config exists
+          echo "Checking npm config..."
+          npm config list
 
           # Publish with provenance attestation and public access
           # --provenance: Creates cryptographic attestation of build provenance
