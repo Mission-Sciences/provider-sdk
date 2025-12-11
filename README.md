@@ -4,8 +4,10 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue)](https://www.typescriptlang.org/)
+[![npm version](https://img.shields.io/npm/v/@mission_sciences/provider-sdk)](https://www.npmjs.com/package/@mission_sciences/provider-sdk)
+[![GitHub Actions](https://github.com/Mission-Sciences/provider-sdk/workflows/Publish%20Package/badge.svg)](https://github.com/Mission-Sciences/provider-sdk/actions)
 
-> **📦 Migration Notice**: This package has been renamed from `@marketplace/provider-sdk` to `@mission_sciences/provider-sdk`. Please update your dependencies. See [Migration Guide](#-migration-from-marketplaceprovider-sdk) below.
+> **📦 Migration Complete**: This package has been migrated from Bitbucket to GitHub and renamed from `@marketplace/provider-sdk` to `@mission_sciences/provider-sdk`. Now available on public npm with cryptographic provenance! See [Migration Guide](#-migration-from-marketplaceprovider-sdk) below.
 
 ## 🚀 Quick Start
 
@@ -77,11 +79,40 @@ When users launch your app from the marketplace:
 7. **Session End**: Calls your `onSessionEnd` hook
 8. **Redirect**: Returns to marketplace (optional)
 
+## 🔒 Secure Publishing & Provenance
+
+This package is published with cryptographic provenance attestation:
+
+- **Dual Publishing**: Available on both [npm](https://www.npmjs.com/package/@mission_sciences/provider-sdk) (public) and AWS CodeArtifact (private)
+- **Cryptographic Signatures**: All releases signed with GitHub Actions OIDC
+- **Provenance Transparency**: Build provenance recorded in [Sigstore transparency log](https://search.sigstore.dev)
+- **No Hardcoded Secrets**: CI/CD uses OIDC for AWS and npm authentication
+- **Automated CI/CD**: GitHub Actions workflow with comprehensive testing and security checks
+
+Verify package provenance:
+```bash
+npm view @mission_sciences/provider-sdk --json | jq .dist
+```
+
 ## 📦 Installation
 
-### NPM
+### NPM (Public Registry)
 
 ```bash
+npm install @mission_sciences/provider-sdk
+```
+
+### AWS CodeArtifact (Private Registry)
+
+```bash
+# Configure CodeArtifact
+aws codeartifact login \
+  --tool npm \
+  --domain general-wisdom-dev \
+  --repository sdk-packages \
+  --region us-east-1
+
+# Install
 npm install @mission_sciences/provider-sdk
 ```
 
@@ -325,6 +356,38 @@ npm install
 npm run dev
 ```
 
+## 🏗️ Infrastructure & CI/CD
+
+### GitHub Actions Workflow
+
+The package is built and published using a comprehensive 8-job GitHub Actions pipeline:
+
+1. **Test & Build** - Unit tests, type checking, linting, and production build
+2. **Terraform Plan** - Review infrastructure changes (CodeArtifact setup)
+3. **Terraform Apply** - Create/update AWS infrastructure
+4. **Publish CodeArtifact** - Publish to private AWS registry
+5. **Verify CodeArtifact** - Confirm successful publication
+6. **Publish npm** - Publish to public npm with provenance
+7. **Verify npm** - Confirm successful publication
+8. **Create Release** - Generate GitHub release with artifacts
+
+**Authentication:**
+- AWS: OIDC via IAM role `GitHubActions-ProviderSDK` (no access keys)
+- npm: Trusted Publishing with cryptographic provenance (no tokens)
+
+### Planning Documentation
+
+Comprehensive migration and setup documentation available in `planning/`:
+
+- **[PROJECT_CONTEXT.md](./planning/PROJECT_CONTEXT.md)** - Project overview and context
+- **[EXISTING_ANALYSIS.md](./planning/EXISTING_ANALYSIS.md)** - Codebase analysis
+- **[REQUIREMENTS.md](./planning/REQUIREMENTS.md)** - Migration requirements
+- **[CI_CD_ARCHITECTURE.md](./planning/CI_CD_ARCHITECTURE.md)** - Workflow design
+- **[AWS_OIDC_SETUP.md](./planning/AWS_OIDC_SETUP.md)** - AWS OIDC configuration
+- **[NPM_TRUSTED_PUBLISHING_SETUP.md](./planning/NPM_TRUSTED_PUBLISHING_SETUP.md)** - npm provenance setup
+- **[GITHUB_SETUP_GUIDE.md](./planning/GITHUB_SETUP_GUIDE.md)** - Complete setup guide
+- **[MIGRATION_CHECKLIST.md](./planning/MIGRATION_CHECKLIST.md)** - Migration checklist
+
 ## 📖 API Reference
 
 ### MarketplaceSDK
@@ -428,16 +491,33 @@ See [INTEGRATION_GUIDE.md#troubleshooting](./INTEGRATION_GUIDE.md#troubleshootin
 
 ## 📦 Migration from @marketplace/provider-sdk
 
-If you're upgrading from the old `@marketplace/provider-sdk` package:
+### Repository Migration
 
-### Step 1: Update package.json
+This package has been migrated from Bitbucket to GitHub with enhanced security and public availability:
+
+**Old:**
+- Repository: Bitbucket (private)
+- Package: `@marketplace/provider-sdk`
+- Registry: AWS CodeArtifact only (private)
+- CI/CD: Bitbucket Pipelines with hardcoded credentials
+
+**New:**
+- Repository: [GitHub/Mission-Sciences/provider-sdk](https://github.com/Mission-Sciences/provider-sdk) (public)
+- Package: `@mission_sciences/provider-sdk`
+- Registry: npm (public) + AWS CodeArtifact (private)
+- CI/CD: GitHub Actions with OIDC (zero secrets)
+- Security: Cryptographic provenance attestation
+
+### Migration Steps
+
+#### Step 1: Update package.json
 
 ```bash
 npm uninstall @marketplace/provider-sdk
 npm install @mission_sciences/provider-sdk
 ```
 
-### Step 2: Update imports
+#### Step 2: Update imports
 
 ```typescript
 // Old
@@ -447,18 +527,28 @@ import MarketplaceSDK from '@marketplace/provider-sdk';
 import MarketplaceSDK from '@mission_sciences/provider-sdk';
 ```
 
-### Step 3: Remove old registry config (if using CodeArtifact)
+#### Step 3: Simplify registry config
 
-Remove or update your `.npmrc` file:
-
+**If using npm (public registry):**
 ```bash
-# Old (remove this)
-@marketplace:registry=https://ghostdogbase-540845145946.d.codeartifact.us-east-1.amazonaws.com/npm/sdk-packages/
+# Remove .npmrc - use default npm registry (no configuration needed!)
+```
 
-# New (use default npm registry - no configuration needed)
+**If using CodeArtifact (private registry):**
+```bash
+# Update your .npmrc
+@mission_sciences:registry=https://general-wisdom-dev-540845145946.d.codeartifact.us-east-1.amazonaws.com/npm/sdk-packages/
 ```
 
 **Note**: The API is 100% compatible. No code changes required beyond the package name!
+
+### Benefits of Migration
+
+✅ **Public Availability**: Install from npm without AWS credentials
+✅ **Provenance Attestation**: Cryptographic proof of build integrity
+✅ **Enhanced Security**: OIDC authentication, no hardcoded secrets
+✅ **Open Source Workflow**: Public CI/CD pipeline on GitHub Actions
+✅ **Dual Publishing**: Available on both public npm and private CodeArtifact
 
 ## 🤝 Contributing
 
@@ -476,7 +566,21 @@ MIT License - see [LICENSE](./LICENSE) file for details
 
 ## 📊 Changelog
 
-### v2.0.0 (Phase 2)
+### v0.1.2 (2025-01-11) - Migration Release
+- 🏗️ Migrated from Bitbucket to GitHub
+- 📦 Package renamed: `@marketplace/provider-sdk` → `@mission_sciences/provider-sdk`
+- 🔒 Added cryptographic provenance attestation
+- ☁️ Dual publishing: npm (public) + AWS CodeArtifact (private)
+- 🔐 Zero-secret CI/CD with OIDC authentication
+- 📝 Comprehensive migration documentation
+- 🚀 GitHub Actions workflow with 8-job pipeline
+
+### v0.1.1 (2024) - Pre-Migration
+- Initial Bitbucket release
+- CodeArtifact-only distribution
+- Bitbucket Pipelines CI/CD
+
+### v2.0.0 (Planned - Phase 2)
 - Heartbeat system
 - Multi-tab coordination
 - Session extension
@@ -484,7 +588,6 @@ MIT License - see [LICENSE](./LICENSE) file for details
 - Visibility API integration
 
 ### v1.0.0 (Phase 1)
-- Initial release
 - JWT validation with JWKS
 - Session timer management
 - Lifecycle hooks
