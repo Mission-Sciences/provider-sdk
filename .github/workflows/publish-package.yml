@@ -40,9 +40,8 @@
 #   Enhanced supply chain security with automatic attestations
 #
 # Migration Notes:
-#   - Migrated from Bitbucket Pipelines to GitHub Actions
 #   - Uses OIDC authentication with assume-role (no access keys required)
-#   - Added npm registry publishing (new capability)
+#   - Dual-publish to AWS CodeArtifact and npm registry
 #   - Enhanced error handling and rollback strategies
 #
 # Last Updated: 2025-12-10
