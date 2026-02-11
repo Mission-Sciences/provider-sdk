@@ -7,293 +7,378 @@
 [![npm version](https://img.shields.io/npm/v/@mission_sciences/provider-sdk)](https://www.npmjs.com/package/@mission_sciences/provider-sdk)
 [![GitHub Actions](https://github.com/Mission-Sciences/provider-sdk/workflows/Publish%20Package/badge.svg)](https://github.com/Mission-Sciences/provider-sdk/actions)
 
-> **📦 Migration Complete**: This package has been migrated from Bitbucket to GitHub and renamed from `@marketplace/provider-sdk` to `@mission_sciences/provider-sdk`. Now available on public npm with cryptographic provenance! See [Migration Guide](#-migration-from-marketplaceprovider-sdk) below.
-
-## 🚀 Quick Start
+## Quick Start
 
 ```bash
-# Install
 npm install @mission_sciences/provider-sdk
+```
 
-# Initialize
-import MarketplaceSDK from '@mission_sciences/provider-sdk';
+```javascript
+import { MarketplaceSDK } from '@mission_sciences/provider-sdk';
 
 const sdk = new MarketplaceSDK({
-  jwtParamName: 'jwt',
+  jwksUri: 'https://api.generalwisdom.com/.well-known/jwks.json',
   applicationId: 'your-app-id',
-  jwksUrl: 'https://api.generalwisdom.com/.well-known/jwks.json',
-  onSessionStart: async (context) => {
-    // Your auth logic
-  },
-  onSessionEnd: async (context) => {
-    // Cleanup logic
+  autoStart: true,
+  hooks: {
+    async onSessionStart(context) {
+      // context.jwt      - raw JWT string
+      // context.userId   - GW user ID
+      // context.email    - user email
+      // context.sessionId, context.orgId, context.applicationId, etc.
+
+      // Exchange the GW JWT for your app's auth tokens
+      const res = await fetch('/auth/marketplace', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jwt: context.jwt }),
+      });
+      const { token } = await res.json();
+      localStorage.setItem('auth_token', token);
+    },
+    async onSessionEnd(context) {
+      // context.reason = 'expired' | 'manual' | 'error'
+      localStorage.clear();
+    },
   },
 });
 
 await sdk.initialize();
 ```
 
-## 📚 Documentation
+## Documentation
 
-- **[Integration Guide](./INTEGRATION_GUIDE.md)** - Comprehensive guide for all frameworks
-- **[Quick Start Guide](./QUICKSTART.md)** - Get started in 3 minutes
-- **[Testing Guide](./TESTING_GUIDE.md)** - Testing strategies
-- **[JWT Specification](./jwt-specification.md)** - Token format details
+- **[Integration Guide](./INTEGRATION_GUIDE.md)** -- Comprehensive guide for all frameworks (vanilla JS, React, Vue, Chrome Extensions)
+- **[Quick Start Guide](./QUICKSTART.md)** -- Get started in 3 minutes
+- **[JWT Specification](./jwt-specification.md)** -- Token format and claim details
+- **[Validation Guide](./VALIDATION.md)** -- Testing and validation strategies
+- **[Auth Integration Demo](./examples/auth-integration/)** -- Full working demo with 5 identity providers and 2 frontend implementations
 
-### Example Integrations
+## Features
 
-- **[GhostDog Integration](../extension-ghostdog/MARKETPLACE_INTEGRATION.md)** - Real-world Chrome extension example
+### Core
+- **Zero Config**: Extracts JWT from URL, validates via JWKS, starts session timer
+- **Framework Agnostic**: Works with vanilla JS, React, Vue, or any framework
+- **TypeScript First**: Full type definitions with all interfaces exported
+- **Lightweight**: Single dependency (`jose` for JWT/JWKS)
+- **Secure**: RS256 JWT verification with JWKS rotation support
 
-## ✨ Features
+### Lifecycle Hooks
+- **`onSessionStart`** -- Fires after JWT validation, before timer starts. Use to exchange tokens with your auth system. Hook failure prevents session start (strict mode).
+- **`onSessionEnd`** -- Fires on expiration or manual end. Use to revoke sessions. Errors are logged but don't block teardown (lenient mode).
+- **`onSessionWarning`** -- Fires when session nears expiration (configurable threshold).
+- **`onSessionExtend`** -- Fires after session extension. Use to refresh auth tokens.
 
-### Core Features
-- ✅ **Zero Dependencies**: Self-contained with minimal external deps
-- ✅ **Framework Agnostic**: Works with vanilla JS, React, Vue, and more
-- ✅ **TypeScript First**: Full type definitions included
-- ✅ **Lightweight**: < 10KB gzipped
-- ✅ **Secure**: RS256 JWT verification with JWKS
-- ✅ **Customizable**: Flexible styling and event handling
+### Advanced (Phase 2)
+- **Heartbeat**: Automatic server sync at configurable intervals
+- **Multi-Tab Sync**: Master tab election via BroadcastChannel API
+- **Session Extension**: Self-service renewal with `extendSession(minutes)`
+- **Early Completion**: End sessions early with `completeSession(actualMinutes)`
+- **Visibility API**: Auto-pause timer when tab is hidden
+- **Backend Validation**: Alternative to JWKS for sensitive apps
 
-### Advanced Features (Phase 2)
-- ❤️ **Heartbeat System**: Automatic server sync
-- 🔄 **Multi-Tab Sync**: Master tab election with BroadcastChannel API
-- ⏰ **Session Extension**: Self-service renewal
-- ✅ **Early Completion**: End sessions early with refund calculation
-- 👁️ **Visibility API**: Auto-pause when tab hidden
-- 🔐 **Backend Validation**: Alternative to JWKS for sensitive apps
-
-## 🎯 How It Works
+## How It Works
 
 ```
-Marketplace → JWT in URL → SDK validates → Your app authenticates → Session active
+Marketplace --> JWT in URL --> SDK validates via JWKS --> Lifecycle hooks fire --> Session active
 ```
 
-When users launch your app from the marketplace:
+1. User launches your app from the marketplace with `?jwt=<token>` in the URL
+2. SDK extracts the JWT and verifies it against the JWKS endpoint (RS256)
+3. `hooks.onSessionStart` fires with the validated session context
+4. Session timer starts counting down
+5. `hooks.onSessionWarning` fires at the configured threshold
+6. When the timer expires or `endSession()` is called, `hooks.onSessionEnd` fires
 
-1. **URL Detection**: SDK checks for JWT parameter (`?jwt=...`)
-2. **JWT Validation**: Verifies signature using RS256 and JWKS
-3. **Session Start**: Calls your `onSessionStart` hook
-4. **Timer Start**: Countdown begins
-5. **Session Active**: User interacts with your app
-6. **Warning**: Alert at 5 minutes remaining (configurable)
-7. **Session End**: Calls your `onSessionEnd` hook
-8. **Redirect**: Returns to marketplace (optional)
-
-## 🔒 Secure Publishing & Provenance
-
-This package is published with cryptographic provenance attestation:
-
-- **Dual Publishing**: Available on both [npm](https://www.npmjs.com/package/@mission_sciences/provider-sdk) (public) and AWS CodeArtifact (private)
-- **Cryptographic Signatures**: All releases signed with GitHub Actions OIDC
-- **Provenance Transparency**: Build provenance recorded in [Sigstore transparency log](https://search.sigstore.dev)
-- **No Hardcoded Secrets**: CI/CD uses OIDC for AWS and npm authentication
-- **Automated CI/CD**: GitHub Actions workflow with comprehensive testing and security checks
-
-Verify package provenance:
-```bash
-npm view @mission_sciences/provider-sdk --json | jq .dist
-```
-
-## 📦 Installation
-
-### NPM (Public Registry)
+## Installation
 
 ```bash
+# npm (public registry)
 npm install @mission_sciences/provider-sdk
+
+# yarn
+yarn add @mission_sciences/provider-sdk
+
+# pnpm
+pnpm add @mission_sciences/provider-sdk
 ```
 
 ### AWS CodeArtifact (Private Registry)
 
 ```bash
-# Configure CodeArtifact
 aws codeartifact login \
   --tool npm \
   --domain general-wisdom-dev \
   --repository sdk-packages \
   --region us-east-1
 
-# Install
 npm install @mission_sciences/provider-sdk
 ```
 
-### Yarn
-
-```bash
-yarn add @mission_sciences/provider-sdk
-```
-
-### PNPM
-
-```bash
-pnpm add @mission_sciences/provider-sdk
-```
-
-## 🏗️ Basic Usage
+## Usage
 
 ### Vanilla JavaScript
 
 ```javascript
-import MarketplaceSDK from '@mission_sciences/provider-sdk';
+import { MarketplaceSDK } from '@mission_sciences/provider-sdk';
 
 const sdk = new MarketplaceSDK({
-  jwtParamName: 'jwt',
+  jwksUri: '/.well-known/jwks.json',
   applicationId: 'my-app',
-  jwksUrl: 'https://api.generalwisdom.com/.well-known/jwks.json',
-  
-  onSessionStart: async (context) => {
-    // Store user info
-    localStorage.setItem('user_id', context.userId);
-    localStorage.setItem('session_id', context.sessionId);
-    
-    // Show app UI
-    document.getElementById('app').style.display = 'block';
+  autoStart: true,
+  warningThresholdSeconds: 120,
+  hooks: {
+    async onSessionStart(context) {
+      // Exchange GW JWT for your app's tokens
+      const res = await fetch('/auth/exchange', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jwt: context.jwt }),
+      });
+      const data = await res.json();
+      sessionStorage.setItem('access_token', data.access_token);
+    },
+    async onSessionEnd(context) {
+      sessionStorage.clear();
+    },
   },
-  
-  onSessionEnd: async (context) => {
-    // Clear storage
-    localStorage.clear();
-    
-    // Hide app UI
-    document.getElementById('app').style.display = 'none';
-  },
+});
+
+// Event handlers (separate from hooks -- these fire after hooks complete)
+sdk.on('onSessionStart', (sessionData) => {
+  document.getElementById('app').style.display = 'block';
+});
+
+sdk.on('onSessionEnd', () => {
+  document.getElementById('app').style.display = 'none';
+});
+
+sdk.on('onError', (error) => {
+  console.error('SDK error:', error.message);
 });
 
 await sdk.initialize();
 
-// Mount session header
-const header = sdk.createSessionHeader();
-header.mount('#session-header');
+// Timer display
+setInterval(() => {
+  document.getElementById('timer').textContent = sdk.getFormattedTime();
+}, 1000);
 ```
 
 ### React
 
 ```typescript
-import { useEffect } from 'react';
-import MarketplaceSDK from '@mission_sciences/provider-sdk';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { MarketplaceSDK } from '@mission_sciences/provider-sdk';
 
 function useMarketplaceSession() {
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [time, setTime] = useState('--:--');
+  const sdkRef = useRef(null);
+
   useEffect(() => {
     const sdk = new MarketplaceSDK({
-      jwtParamName: 'jwt',
+      jwksUri: '/.well-known/jwks.json',
       applicationId: 'my-react-app',
-      jwksUrl: 'https://api.generalwisdom.com/.well-known/jwks.json',
-      
-      onSessionStart: async (context) => {
-        // Call your auth API
-        await authenticateUser(context);
-      },
-      
-      onSessionEnd: async (context) => {
-        // Clear auth state
-        await logout();
+      autoStart: true,
+      hooks: {
+        async onSessionStart(context) {
+          await authenticateUser(context.jwt);
+        },
+        async onSessionEnd(context) {
+          await logout();
+        },
       },
     });
 
+    sdk.on('onSessionStart', (data) => {
+      setSession(data);
+      setLoading(false);
+    });
+
+    sdk.on('onError', (err) => {
+      console.error(err);
+      setLoading(false);
+    });
+
+    sdkRef.current = sdk;
     sdk.initialize();
 
-    return () => sdk.destroy();
+    const interval = setInterval(() => {
+      if (sdkRef.current) setTime(sdkRef.current.getFormattedTime());
+    }, 1000);
+
+    return () => {
+      clearInterval(interval);
+      sdk.destroy();
+    };
   }, []);
+
+  return { session, loading, time, sdk: sdkRef };
 }
 ```
 
-See [INTEGRATION_GUIDE.md](./INTEGRATION_GUIDE.md) for Vue, Chrome Extensions, and more.
+See the [Integration Guide](./INTEGRATION_GUIDE.md) for Vue, Chrome Extensions, and more patterns.
 
-## 🎨 Session Header Component
+### Auth Integration Demo
 
-Pre-built UI component for displaying session timer:
+A complete working example with Docker, 5 identity providers, and 2 frontend implementations lives in `examples/auth-integration/`:
+
+```bash
+# Build the SDK first
+npm run build
+
+# Start the demo (defaults to mock IdP + React storefront + Auth0 protocol)
+cd examples/auth-integration
+cp .env.mock .env
+docker compose up --build
+
+# Open http://localhost:8080/generate-test-url
+```
+
+The demo includes:
+- **Mock IdP** that speaks Auth0, Okta, Azure AD, and Cognito protocols
+- **React ecommerce storefront** with product shop, cart, role-gated admin panel
+- **Vanilla JS reference** with auth hooks and event log
+- **Backend** with provider-agnostic auth exchange using the `AuthProvider` interface
+- **Role-based access control** showing `gw-user` vs `org-admin` UI gating
+
+See [examples/auth-integration/README.md](./examples/auth-integration/README.md) for full documentation, and [examples/auth-integration/docs/DEMO_WALKTHROUGH.md](./examples/auth-integration/docs/DEMO_WALKTHROUGH.md) for a step-by-step walkthrough.
+
+## Configuration
 
 ```typescript
-const header = sdk.createSessionHeader({
-  containerId: 'session-header',
-  theme: 'dark', // 'light' | 'dark' | 'auto'
-  showControls: true,
-  showEndButton: true,
-});
+interface SDKConfig {
+  // JWT & Validation
+  jwksUri?: string;                   // JWKS endpoint (default: GW production endpoint)
+  applicationId?: string;             // Your application ID
+  useBackendValidation?: boolean;     // Use backend instead of JWKS (default: false)
 
-header.mount('#session-header');
+  // Session Behavior
+  autoStart?: boolean;                // Auto-start from URL JWT (default: true)
+  warningThresholdSeconds?: number;   // Warning before expiry (default: 300)
+  marketplaceUrl?: string;            // Redirect URL after session end
+
+  // Lifecycle Hooks
+  hooks?: {
+    onSessionStart?: (ctx: SessionStartContext) => Promise<void> | void;
+    onSessionEnd?: (ctx: SessionEndContext) => Promise<void> | void;
+    onSessionExtend?: (ctx: SessionExtendContext) => Promise<void> | void;
+    onSessionWarning?: (ctx: SessionWarningContext) => Promise<void> | void;
+  };
+  hookTimeoutMs?: number;             // Hook timeout (default: 5000)
+
+  // Phase 2 Features
+  enableHeartbeat?: boolean;          // Server heartbeat (default: false)
+  heartbeatIntervalSeconds?: number;  // Heartbeat interval (default: 30)
+  enableTabSync?: boolean;            // Multi-tab sync (default: false)
+  pauseOnHidden?: boolean;            // Pause when tab hidden (default: false)
+
+  // UI
+  themeMode?: 'light' | 'dark' | 'auto';
+  debug?: boolean;                    // Console logging (default: false)
+}
 ```
 
-**Custom Styling**:
+## API Reference
 
-```css
-.gw-session-header {
-  background: #1a1a1a;
-  padding: 12px 24px;
-}
-
-.gw-session-timer {
-  font-size: 18px;
-  color: #00ff88;
-}
-
-.gw-session-timer--warning {
-  color: #ff6b00;
-}
-```
-
-## 🔐 Authentication Integration
-
-### Exchange JWT for Your App's Tokens
+### MarketplaceSDK
 
 ```typescript
-onSessionStart: async (context) => {
-  // Send marketplace JWT to your backend
-  const response = await fetch('https://api.your-app.com/auth/marketplace', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${context.jwt}`,
-    },
-  });
-  
-  const { token } = await response.json();
-  
-  // Store your app's auth token
-  localStorage.setItem('auth_token', token);
-},
+class MarketplaceSDK {
+  constructor(config: SDKConfig)
+
+  // Initialization
+  async initialize(): Promise<SessionData>
+
+  // Event handlers (fire after hooks complete)
+  on(event: 'onSessionStart', handler: (data: SessionData) => void): void
+  on(event: 'onSessionEnd', handler: () => void): void
+  on(event: 'onSessionWarning', handler: (data: { remainingSeconds: number }) => void): void
+  on(event: 'onError', handler: (error: Error) => void): void
+
+  // Timer
+  startTimer(): void
+  pauseTimer(): void
+  resumeTimer(): void
+  isTimerRunning(): boolean
+  getRemainingTime(): number          // Seconds remaining
+  getFormattedTime(): string          // "M:SS" format
+  getFormattedTimeWithHours(): string // "H:MM:SS" format
+
+  // Session control
+  async endSession(): Promise<void>
+  async extendSession(additionalMinutes: number): Promise<void>
+  async completeSession(actualUsageMinutes?: number): Promise<void>
+
+  // Data
+  getSessionData(): SessionData | null
+
+  // Cleanup
+  destroy(): void
+}
 ```
 
-**Backend Example** (Python/Flask):
-
-```python
-@app.route('/auth/marketplace', methods=['POST'])
-def marketplace_auth():
-    jwt_token = request.headers.get('Authorization').replace('Bearer ', '')
-    
-    # Validate JWT
-    claims = validate_marketplace_jwt(jwt_token)
-    
-    # Create/update user
-    user = get_or_create_user(claims['userId'], claims.get('email'))
-    
-    # Generate your app's token
-    app_token = generate_app_token(user)
-    
-    return jsonify({'token': app_token})
-```
-
-See [INTEGRATION_GUIDE.md#authentication-integration](./INTEGRATION_GUIDE.md#authentication-integration) for Cognito, Firebase, Auth0 examples.
-
-## ⚙️ Configuration
-
-### SDK Options
+### Context Types
 
 ```typescript
-interface SDKOptions {
-  // Required
-  jwtParamName: string;              // URL parameter name
-  applicationId: string;             // Your app ID
-  jwksUrl: string;                   // JWKS endpoint
-  onSessionStart: (context) => Promise<void>;
-  onSessionEnd: (context) => Promise<void>;
-  
-  // Optional
-  onSessionWarning?: (context) => Promise<void>;
-  onSessionExtend?: (context) => Promise<void>;
-  marketplaceUrl?: string;           // Redirect after session end
-  warningThresholdMinutes?: number;  // Default: 5
-  debug?: boolean;                   // Enable logging
-  pauseWhenHidden?: boolean;         // Auto-pause when tab hidden
+interface SessionStartContext {
+  sessionId: string;
+  userId: string;
+  email?: string;
+  orgId: string;
+  applicationId: string;
+  durationMinutes: number;
+  expiresAt: number;        // Unix seconds
+  jwt: string;              // Raw JWT for backend exchange
 }
+
+interface SessionEndContext {
+  sessionId: string;
+  userId: string;
+  reason: 'expired' | 'manual' | 'error';
+  actualDurationMinutes?: number;
+}
+
+interface SessionExtendContext {
+  sessionId: string;
+  userId: string;
+  additionalMinutes: number;
+  newExpiresAt: number;
+}
+
+interface SessionWarningContext {
+  sessionId: string;
+  userId: string;
+  remainingSeconds: number;
+}
+```
+
+### Exports
+
+```typescript
+// Main class
+export { MarketplaceSDK } from '@mission_sciences/provider-sdk';
+export { MarketplaceSDK as default } from '@mission_sciences/provider-sdk';
+
+// UI components
+export { SessionHeader } from '@mission_sciences/provider-sdk';
+export { WarningModal } from '@mission_sciences/provider-sdk';
+
+// Core utilities
+export { JWTParser, JWKSValidator, TimerManager } from '@mission_sciences/provider-sdk';
+export { HeartbeatManager, TabSyncManager } from '@mission_sciences/provider-sdk';
+
+// Theming
+export { lightTheme, darkTheme, getTheme, generateCSSVariables } from '@mission_sciences/provider-sdk';
+
+// Types
+export type {
+  SDKConfig, SessionData, SDKEvents,
+  SessionStartContext, SessionEndContext, SessionExtendContext, SessionWarningContext,
+  SessionLifecycleHooks, ThemeMode,
+} from '@mission_sciences/provider-sdk';
 ```
 
 ### JWT Structure
@@ -308,11 +393,13 @@ interface SDKOptions {
   "startTime": 1763599337,
   "durationMinutes": 60,
   "exp": 1763602937,
-  "iat": 1763599337
+  "iat": 1763599337,
+  "iss": "generalwisdom.com",
+  "sub": "a47884c8-50d1-7040-2de8-b7801699643c"
 }
 ```
 
-## 🧪 Testing
+## Testing
 
 ### Generate Test JWT
 
@@ -321,278 +408,137 @@ npm run generate-keys     # Create RSA key pair (dev only)
 npm run generate-jwt 60   # Generate 60-minute JWT
 ```
 
-### Test Server
+### Dev Server
 
 ```bash
 npm run test-server       # Start dev server at localhost:3000
+npm run test-server-p2    # Phase 2 dev server with heartbeat/tab-sync
 ```
 
 Open: `http://localhost:3000?jwt=<YOUR_JWT>`
 
-See [TESTING_GUIDE.md](./TESTING_GUIDE.md) for unit, integration, and E2E testing.
-
-## 🛠️ Development
-
-### Build
+### Unit Tests
 
 ```bash
-npm run build         # Build for production
-npm run dev           # Watch mode
+npm run test              # Run all tests
+npm run test:watch        # Watch mode
+npm run test:coverage     # Coverage report
+npm run test:integration  # Integration tests
 ```
 
-### Code Quality
+## Development
 
 ```bash
+npm run build         # Build for production (tsc + vite)
+npm run dev           # Vite dev server with HMR
 npm run lint          # ESLint
 npm run format        # Prettier
-npm run type-check    # TypeScript
 ```
 
-### Examples
+### Build Output
+
+```
+dist/
+├── marketplace-sdk.es.js       # ESM bundle
+├── marketplace-sdk.es.js.map
+├── marketplace-sdk.umd.js      # UMD bundle
+├── marketplace-sdk.umd.js.map
+└── index.d.ts                  # TypeScript declarations
+```
+
+## Infrastructure & CI/CD
+
+The package is built and published using an 8-job GitHub Actions pipeline:
+
+1. **Test & Build** -- Unit tests, type checking, linting, production build
+2. **Terraform Plan** -- Review infrastructure changes (CodeArtifact)
+3. **Terraform Apply** -- Create/update AWS infrastructure
+4. **Publish CodeArtifact** -- Publish to private AWS registry
+5. **Verify CodeArtifact** -- Confirm publication
+6. **Publish npm** -- Publish to public npm with provenance
+7. **Verify npm** -- Confirm publication
+8. **Create Release** -- GitHub release with artifacts
+
+**Authentication**: AWS via OIDC (no access keys), npm via Trusted Publishing with cryptographic provenance (no tokens).
+
+## Secure Publishing & Provenance
+
+- **Dual Publishing**: [npm](https://www.npmjs.com/package/@mission_sciences/provider-sdk) (public) + AWS CodeArtifact (private)
+- **Cryptographic Signatures**: All releases signed with GitHub Actions OIDC
+- **Provenance Transparency**: Build provenance in [Sigstore transparency log](https://search.sigstore.dev)
+- **No Hardcoded Secrets**: CI/CD uses OIDC for all authentication
 
 ```bash
-cd examples/vanilla-js
-npm install
-npm run dev
+# Verify provenance
+npm view @mission_sciences/provider-sdk --json | jq .dist
 ```
 
-## 🏗️ Infrastructure & CI/CD
+## Production Checklist
 
-### GitHub Actions Workflow
-
-The package is built and published using a comprehensive 8-job GitHub Actions pipeline:
-
-1. **Test & Build** - Unit tests, type checking, linting, and production build
-2. **Terraform Plan** - Review infrastructure changes (CodeArtifact setup)
-3. **Terraform Apply** - Create/update AWS infrastructure
-4. **Publish CodeArtifact** - Publish to private AWS registry
-5. **Verify CodeArtifact** - Confirm successful publication
-6. **Publish npm** - Publish to public npm with provenance
-7. **Verify npm** - Confirm successful publication
-8. **Create Release** - Generate GitHub release with artifacts
-
-**Authentication:**
-- AWS: OIDC via IAM role `GitHubActions-ProviderSDK` (no access keys)
-- npm: Trusted Publishing with cryptographic provenance (no tokens)
-
-### Planning Documentation
-
-Comprehensive migration and setup documentation available in `planning/`:
-
-- **[PROJECT_CONTEXT.md](./planning/PROJECT_CONTEXT.md)** - Project overview and context
-- **[EXISTING_ANALYSIS.md](./planning/EXISTING_ANALYSIS.md)** - Codebase analysis
-- **[REQUIREMENTS.md](./planning/REQUIREMENTS.md)** - Migration requirements
-- **[CI_CD_ARCHITECTURE.md](./planning/CI_CD_ARCHITECTURE.md)** - Workflow design
-- **[AWS_OIDC_SETUP.md](./planning/AWS_OIDC_SETUP.md)** - AWS OIDC configuration
-- **[NPM_TRUSTED_PUBLISHING_SETUP.md](./planning/NPM_TRUSTED_PUBLISHING_SETUP.md)** - npm provenance setup
-- **[GITHUB_SETUP_GUIDE.md](./planning/GITHUB_SETUP_GUIDE.md)** - Complete setup guide
-- **[MIGRATION_CHECKLIST.md](./planning/MIGRATION_CHECKLIST.md)** - Migration checklist
-
-## 📖 API Reference
-
-### MarketplaceSDK
-
-```typescript
-class MarketplaceSDK {
-  constructor(options: SDKOptions)
-  
-  // Initialize SDK
-  async initialize(): Promise<void>
-  
-  // Session management
-  hasActiveSession(): boolean
-  getSession(): Session | null
-  async endSession(reason: string): Promise<void>
-  async extendSession(minutes: number): Promise<void>
-  
-  // UI components
-  createSessionHeader(options?: HeaderOptions): SessionHeader
-  
-  // Timer control
-  pauseTimer(): void
-  resumeTimer(): void
-  isTimerPaused(): boolean
-  
-  // Cleanup
-  destroy(): void
-}
-```
-
-### Context Types
-
-```typescript
-interface SessionStartContext {
-  sessionId: string;
-  applicationId: string;
-  userId: string;
-  orgId?: string;
-  email?: string;
-  startTime: number;
-  expiresAt: number;
-  durationMinutes: number;
-  jwt: string;
-}
-
-interface SessionEndContext {
-  sessionId: string;
-  userId: string;
-  reason: 'expired' | 'manual' | 'error';
-  actualDurationMinutes: number;
-}
-```
-
-See [INTEGRATION_GUIDE.md#api-reference](./INTEGRATION_GUIDE.md#api-reference) for complete API documentation.
-
-## 🚀 Production Deployment
-
-### Checklist
-
-- [ ] Update `jwksUrl` to production endpoint
+- [ ] Set `jwksUri` to production JWKS endpoint
 - [ ] Set correct `applicationId`
-- [ ] Enable HTTPS for all endpoints
-- [ ] Configure proper CORS headers
-- [ ] Set up secrets management
-- [ ] Enable rate limiting
-- [ ] Configure monitoring and logging
-- [ ] Test with production JWT
-- [ ] Load test auth endpoints
+- [ ] Set `hookTimeoutMs` appropriately for your auth provider latency
+- [ ] Enable HTTPS on all endpoints
+- [ ] Configure CORS headers
+- [ ] Set up secrets management for backend token exchange
+- [ ] Enable rate limiting on auth endpoints
+- [ ] Verify tokens server-side (not just client-side JWKS)
+- [ ] Test with production JWTs
 
-See [INTEGRATION_GUIDE.md#production-deployment](./INTEGRATION_GUIDE.md#production-deployment) for complete checklist.
+## Troubleshooting
 
-## 🐛 Troubleshooting
+**"No jwt token found in URL or storage"** -- The SDK looks for `?jwt=<token>` in the URL. Make sure the marketplace redirect includes the JWT parameter.
 
-### Common Issues
+**JWT validation failed** -- Check that `jwksUri` points to the correct JWKS endpoint and that the JWT hasn't expired.
 
-**JWT validation failed**
-- Check JWKS URL is correct
-- Verify applicationId matches
-- Ensure JWT not expired
+**Hook timeout** -- The default `hookTimeoutMs` is 5000ms. If your auth exchange involves multiple API calls (user lookup + creation + token grant), increase it to 10000ms or more.
 
-**Session header not showing**
-- Verify mount element exists
-- Check SDK initialized
-- Confirm active session
+**Session header not rendering** -- `SessionHeader` is a separate exported class, not a method on `MarketplaceSDK`. Import and instantiate it directly.
 
-**Auth server 500 error**
-- Check Cognito configuration
-- Verify client secret (if required)
-- Review server logs
+**Multi-tab conflicts** -- Enable `enableTabSync: true` to elect a master tab and sync session state across tabs via BroadcastChannel.
 
-See [INTEGRATION_GUIDE.md#troubleshooting](./INTEGRATION_GUIDE.md#troubleshooting) for detailed solutions.
-
-## 📚 Resources
-
-- **[Integration Guide](./INTEGRATION_GUIDE.md)** - Complete integration reference
-- **[Quick Start](./QUICKSTART.md)** - Get started in 3 minutes
-- **[Testing Guide](./TESTING_GUIDE.md)** - Testing strategies
-- **[JWT Spec](./jwt-specification.md)** - Token format details
-- **[Examples](./examples/)** - Sample implementations
-- **[GhostDog Integration](../extension-ghostdog/MARKETPLACE_INTEGRATION.md)** - Real-world example
-
-## 📦 Migration from @marketplace/provider-sdk
-
-### Repository Migration
-
-This package has been migrated from Bitbucket to GitHub with enhanced security and public availability:
-
-**Old:**
-- Repository: Bitbucket (private)
-- Package: `@marketplace/provider-sdk`
-- Registry: AWS CodeArtifact only (private)
-- CI/CD: Bitbucket Pipelines with hardcoded credentials
-
-**New:**
-- Repository: [GitHub/Mission-Sciences/provider-sdk](https://github.com/Mission-Sciences/provider-sdk) (public)
-- Package: `@mission_sciences/provider-sdk`
-- Registry: npm (public) + AWS CodeArtifact (private)
-- CI/CD: GitHub Actions with OIDC (zero secrets)
-- Security: Cryptographic provenance attestation
-
-### Migration Steps
-
-#### Step 1: Update package.json
+## Migration from @marketplace/provider-sdk
 
 ```bash
+# 1. Update package
 npm uninstall @marketplace/provider-sdk
 npm install @mission_sciences/provider-sdk
+
+# 2. Update imports
+# Old: import MarketplaceSDK from '@marketplace/provider-sdk';
+# New: import { MarketplaceSDK } from '@mission_sciences/provider-sdk';
 ```
 
-#### Step 2: Update imports
+The API is 100% compatible. No code changes required beyond the package name.
 
-```typescript
-// Old
-import MarketplaceSDK from '@marketplace/provider-sdk';
+**What changed:**
+- Repository: Bitbucket (private) -> [GitHub](https://github.com/Mission-Sciences/provider-sdk) (public)
+- Package: `@marketplace/provider-sdk` -> `@mission_sciences/provider-sdk`
+- Registry: CodeArtifact only -> npm (public) + CodeArtifact (private)
+- CI/CD: Bitbucket Pipelines -> GitHub Actions with OIDC
+- Security: Added cryptographic provenance attestation
 
-// New
-import MarketplaceSDK from '@mission_sciences/provider-sdk';
-```
+## Changelog
 
-#### Step 3: Simplify registry config
+### v0.1.2 (2025-01-11) -- Migration Release
+- Migrated from Bitbucket to GitHub
+- Package renamed: `@marketplace/provider-sdk` -> `@mission_sciences/provider-sdk`
+- Added cryptographic provenance attestation
+- Dual publishing: npm (public) + AWS CodeArtifact (private)
+- Zero-secret CI/CD with OIDC authentication
+- Added lifecycle hooks (`onSessionStart`, `onSessionEnd`, `onSessionWarning`, `onSessionExtend`)
+- Added heartbeat, multi-tab sync, session extension, early completion
+- Added auth integration demo with 5 identity providers
 
-**If using npm (public registry):**
-```bash
-# Remove .npmrc - use default npm registry (no configuration needed!)
-```
+### v0.1.1 (2024) -- Pre-Migration
+- Initial Bitbucket release
+- CodeArtifact-only distribution
 
-**If using CodeArtifact (private registry):**
-```bash
-# Update your .npmrc
-@mission_sciences:registry=https://general-wisdom-dev-540845145946.d.codeartifact.us-east-1.amazonaws.com/npm/sdk-packages/
-```
+## License
 
-**Note**: The API is 100% compatible. No code changes required beyond the package name!
+MIT -- see [LICENSE](./LICENSE)
 
-### Benefits of Migration
-
-✅ **Public Availability**: Install from npm without AWS credentials
-✅ **Provenance Attestation**: Cryptographic proof of build integrity
-✅ **Enhanced Security**: OIDC authentication, no hardcoded secrets
-✅ **Open Source Workflow**: Public CI/CD pipeline on GitHub Actions
-✅ **Dual Publishing**: Available on both public npm and private CodeArtifact
-
-## 🤝 Contributing
-
-Contributions welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) first.
-
-## 📄 License
-
-MIT License - see [LICENSE](./LICENSE) file for details
-
-## 🆘 Support
+## Support
 
 - **Issues**: [GitHub Issues](https://github.com/Mission-Sciences/provider-sdk/issues)
 - **Email**: support@generalwisdom.com
-- **Docs**: [docs.generalwisdom.com](https://docs.generalwisdom.com)
-
-## 📊 Changelog
-
-### v0.1.2 (2025-01-11) - Migration Release
-- 🏗️ Migrated from Bitbucket to GitHub
-- 📦 Package renamed: `@marketplace/provider-sdk` → `@mission_sciences/provider-sdk`
-- 🔒 Added cryptographic provenance attestation
-- ☁️ Dual publishing: npm (public) + AWS CodeArtifact (private)
-- 🔐 Zero-secret CI/CD with OIDC authentication
-- 📝 Comprehensive migration documentation
-- 🚀 GitHub Actions workflow with 8-job pipeline
-
-### v0.1.1 (2024) - Pre-Migration
-- Initial Bitbucket release
-- CodeArtifact-only distribution
-- Bitbucket Pipelines CI/CD
-
-### v2.0.0 (Planned - Phase 2)
-- Heartbeat system
-- Multi-tab coordination
-- Session extension
-- Early completion
-- Visibility API integration
-
-### v1.0.0 (Phase 1)
-- JWT validation with JWKS
-- Session timer management
-- Lifecycle hooks
-- Session header component
-
----
-
-**Built with ❤️ by the General Wisdom team**

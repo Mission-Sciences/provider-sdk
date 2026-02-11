@@ -16,7 +16,11 @@ export class JWKSValidator {
     this.logger = new Logger(debug, '[JWKSValidator]');
 
     // Create JWKS fetcher (works in browser and Node.js)
-    this.jwks = createRemoteJWKSet(new URL(this.jwksUri));
+    // Resolve relative URIs against the page origin in browser environments
+    const resolvedUrl = this.jwksUri.startsWith('http')
+      ? new URL(this.jwksUri)
+      : new URL(this.jwksUri, typeof window !== 'undefined' ? window.location.origin : undefined);
+    this.jwks = createRemoteJWKSet(resolvedUrl);
 
     this.logger.info('Initialized with JWKS URI:', this.jwksUri);
   }
@@ -126,7 +130,10 @@ export class JWKSValidator {
    */
   updateJwksUri(jwksUri: string): void {
     this.jwksUri = jwksUri;
-    this.jwks = createRemoteJWKSet(new URL(this.jwksUri));
+    const resolvedUrl = this.jwksUri.startsWith('http')
+      ? new URL(this.jwksUri)
+      : new URL(this.jwksUri, typeof window !== 'undefined' ? window.location.origin : undefined);
+    this.jwks = createRemoteJWKSet(resolvedUrl);
     this.logger.info('Updated JWKS URI:', this.jwksUri);
   }
 }
