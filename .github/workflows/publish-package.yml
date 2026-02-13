@@ -120,6 +120,7 @@ jobs:
     outputs:
       package-version: ${{ steps.package-info.outputs.version }}
       package-name: ${{ steps.package-info.outputs.name }}
+      archive-name: ${{ steps.package-info.outputs.archive-name }}
       is-release: ${{ steps.package-info.outputs.is-release }}
       npm-tag: ${{ steps.package-info.outputs.npm-tag }}
 
@@ -171,8 +172,12 @@ jobs:
             NPM_TAG="dev"
           fi
 
+          # Sanitize scoped name for use in filenames (e.g. @mission_sciences/provider-sdk → mission_sciences-provider-sdk)
+          ARCHIVE_NAME=$(echo "$PACKAGE_NAME" | sed 's/@//g; s/\//-/g')
+
           echo "version=$PUBLISH_VERSION" >> $GITHUB_OUTPUT
           echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+          echo "archive-name=$ARCHIVE_NAME" >> $GITHUB_OUTPUT
           echo "is-release=$IS_RELEASE" >> $GITHUB_OUTPUT
           echo "npm-tag=$NPM_TAG" >> $GITHUB_OUTPUT
           echo "📦 Publish version: $PUBLISH_VERSION (tag: $NPM_TAG)"
@@ -569,10 +574,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [test-and-build, publish-codeartifact]
-    # Only publish to npm if CodeArtifact succeeded (or was skipped)
+    # Only publish to npm if build succeeded; don't block on CodeArtifact
     if: |
+      always() &&
       github.event.inputs.skip_npm != 'true' &&
-      (needs.publish-codeartifact.result == 'success' || needs.publish-codeartifact.result == 'skipped')
+      needs.test-and-build.result == 'success'
 
     # Permissions required for npm provenance (OIDC authentication)
     permissions:
@@ -744,7 +750,7 @@ jobs:
       - name: Create release archive
         run: |
           cd release-artifacts
-          tar -czf ../${{ needs.test-and-build.outputs.package-name }}-${{ needs.test-and-build.outputs.package-version }}.tar.gz *
+          tar -czf ../${{ needs.test-and-build.outputs.archive-name }}-${{ needs.test-and-build.outputs.package-version }}.tar.gz *
           cd ..
           echo "✅ Release archive created"
 
@@ -755,8 +761,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./${{ needs.test-and-build.outputs.package-name }}-${{ needs.test-and-build.outputs.package-version }}.tar.gz
-          asset_name: ${{ needs.test-and-build.outputs.package-name }}-${{ needs.test-and-build.outputs.package-version }}.tar.gz
+          asset_path: ./${{ needs.test-and-build.outputs.archive-name }}-${{ needs.test-and-build.outputs.package-version }}.tar.gz
+          asset_name: ${{ needs.test-and-build.outputs.archive-name }}-${{ needs.test-and-build.outputs.package-version }}.tar.gz
           asset_content_type: application/gzip
 
       # Update release notes with package distribution info
