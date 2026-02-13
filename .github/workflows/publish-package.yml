@@ -303,8 +303,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: test-and-build
-    # Only run if publishing to CodeArtifact
-    if: github.event.inputs.skip_codeartifact != 'true'
+    # Only run if publishing to CodeArtifact and not a release event
+    # (releases use tag refs which the OIDC role trust policy may not allow;
+    #  the push event that preceded the release already published to CodeArtifact)
+    if: github.event.inputs.skip_codeartifact != 'true' && github.event_name != 'release'
 
     steps:
       # Checkout repository code
@@ -436,7 +438,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [test-and-build, terraform-apply]
-    if: github.event.inputs.skip_codeartifact != 'true'
+    if: github.event.inputs.skip_codeartifact != 'true' && github.event_name != 'release'
 
     steps:
       # Checkout repository code
@@ -756,14 +758,12 @@ jobs:
 
       # Upload release assets
       - name: Upload release assets
-        uses: actions/upload-release-asset@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./${{ needs.test-and-build.outputs.archive-name }}-${{ needs.test-and-build.outputs.package-version }}.tar.gz
-          asset_name: ${{ needs.test-and-build.outputs.archive-name }}-${{ needs.test-and-build.outputs.package-version }}.tar.gz
-          asset_content_type: application/gzip
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" \
+            "./${{ needs.test-and-build.outputs.archive-name }}-${{ needs.test-and-build.outputs.package-version }}.tar.gz" \
+            --clobber
 
       # Update release notes with package distribution info
       - name: Update release notes
