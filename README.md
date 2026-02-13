@@ -500,43 +500,6 @@ npm view @mission_sciences/provider-sdk --json | jq .dist
 
 **Multi-tab conflicts** -- Enable `enableTabSync: true` to elect a master tab and sync session state across tabs via BroadcastChannel.
 
-## Migration from @marketplace/provider-sdk
-
-```bash
-# 1. Update package
-npm uninstall @marketplace/provider-sdk
-npm install @mission_sciences/provider-sdk
-
-# 2. Update imports
-# Old: import MarketplaceSDK from '@marketplace/provider-sdk';
-# New: import { MarketplaceSDK } from '@mission_sciences/provider-sdk';
-```
-
-The API is 100% compatible. No code changes required beyond the package name.
-
-**What changed:**
-- Repository: Bitbucket (private) -> [GitHub](https://github.com/Mission-Sciences/provider-sdk) (public)
-- Package: `@marketplace/provider-sdk` -> `@mission_sciences/provider-sdk`
-- Registry: CodeArtifact only -> npm (public) + CodeArtifact (private)
-- CI/CD: Bitbucket Pipelines -> GitHub Actions with OIDC
-- Security: Added cryptographic provenance attestation
-
-## Changelog
-
-### v0.1.2 (2025-01-11) -- Migration Release
-- Migrated from Bitbucket to GitHub
-- Package renamed: `@marketplace/provider-sdk` -> `@mission_sciences/provider-sdk`
-- Added cryptographic provenance attestation
-- Dual publishing: npm (public) + AWS CodeArtifact (private)
-- Zero-secret CI/CD with OIDC authentication
-- Added lifecycle hooks (`onSessionStart`, `onSessionEnd`, `onSessionWarning`, `onSessionExtend`)
-- Added heartbeat, multi-tab sync, session extension, early completion
-- Added auth integration demo with 5 identity providers
-
-### v0.1.1 (2024) -- Pre-Migration
-- Initial Bitbucket release
-- CodeArtifact-only distribution
-
 ## License
 
 MIT -- see [LICENSE](./LICENSE)
@@ -544,4 +507,4 @@ MIT -- see [LICENSE](./LICENSE)
 ## Support
 
 - **Issues**: [GitHub Issues](https://github.com/Mission-Sciences/provider-sdk/issues)
-- **Email**: support@generalwisdom.com
+- **Discord**: [Discord](https://discord.com/invite/RN5gFEzXhB)
