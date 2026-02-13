@@ -120,6 +120,8 @@ jobs:
     outputs:
       package-version: ${{ steps.package-info.outputs.version }}
       package-name: ${{ steps.package-info.outputs.name }}
+      is-release: ${{ steps.package-info.outputs.is-release }}
+      npm-tag: ${{ steps.package-info.outputs.npm-tag }}
 
     steps:
       # Checkout repository code
@@ -149,12 +151,37 @@ jobs:
       - name: Build package
         run: npm run build
 
-      # Extract package metadata from package.json
+      # Compute publish version and stamp package.json
+      # - Release events: use clean version from package.json (e.g. 0.1.2)
+      # - Push to main: append -dev.<short-sha> (e.g. 0.1.2-dev.a1b2c3d)
       - name: Extract package info
         id: package-info
         run: |
-          echo "version=$(node -p "require('./package.json').version")" >> $GITHUB_OUTPUT
-          echo "name=$(node -p "require('./package.json').name")" >> $GITHUB_OUTPUT
+          BASE_VERSION=$(node -p "require('./package.json').version")
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+
+          if [ "${{ github.event_name }}" = "release" ]; then
+            PUBLISH_VERSION="$BASE_VERSION"
+            IS_RELEASE="true"
+            NPM_TAG="latest"
+          else
+            SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+            PUBLISH_VERSION="${BASE_VERSION}-dev.${SHORT_SHA}"
+            IS_RELEASE="false"
+            NPM_TAG="dev"
+          fi
+
+          echo "version=$PUBLISH_VERSION" >> $GITHUB_OUTPUT
+          echo "name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
+          echo "is-release=$IS_RELEASE" >> $GITHUB_OUTPUT
+          echo "npm-tag=$NPM_TAG" >> $GITHUB_OUTPUT
+          echo "📦 Publish version: $PUBLISH_VERSION (tag: $NPM_TAG)"
+
+      # Stamp package.json with the computed version before building artifacts
+      - name: Set package version
+        run: |
+          npm version "${{ steps.package-info.outputs.version }}" --no-git-tag-version --allow-same-version
+          echo "✅ package.json version set to ${{ steps.package-info.outputs.version }}"
 
       # Verify build artifacts exist
       - name: Verify build artifacts
@@ -451,10 +478,11 @@ jobs:
         id: publish
         run: |
           PACKAGE_VERSION="${{ needs.test-and-build.outputs.package-version }}"
-          echo "Publishing version $PACKAGE_VERSION to CodeArtifact..."
+          NPM_TAG="${{ needs.test-and-build.outputs.npm-tag }}"
+          echo "Publishing version $PACKAGE_VERSION to CodeArtifact (tag: $NPM_TAG)..."
 
           # Attempt publish (may fail if version exists)
-          if npm publish 2>&1 | tee publish-output.log; then
+          if npm publish --tag "$NPM_TAG" 2>&1 | tee publish-output.log; then
             echo "status=success" >> $GITHUB_OUTPUT
             echo "✅ Package published successfully"
           else
@@ -621,10 +649,14 @@ jobs:
           echo "Checking npm config..."
           npm config list
 
+          NPM_TAG="${{ needs.test-and-build.outputs.npm-tag }}"
+          echo "Using dist-tag: $NPM_TAG"
+
           # Publish with provenance attestation and public access
           # --provenance: Creates cryptographic attestation of build provenance
           # --access public: Required for scoped packages (@mission_sciences)
-          if npm publish --provenance --access public 2>&1 | tee publish-output.log; then
+          # --tag: dev for main pushes, latest for releases
+          if npm publish --provenance --access public --tag "$NPM_TAG" 2>&1 | tee publish-output.log; then
             echo "status=success" >> $GITHUB_OUTPUT
             echo "✅ Package published successfully to npm"
           else
@@ -685,9 +717,16 @@ jobs:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     timeout-minutes: 5
-    needs: [test-and-build, publish-npm]
-    # Only create release for tag events
-    if: github.event_name == 'release' && github.event.action == 'published'
+    needs: [test-and-build, publish-npm, publish-codeartifact]
+    # Run for release events as long as the build succeeded; don't block on publish status
+    if: |
+      always() &&
+      github.event_name == 'release' && github.event.action == 'published' &&
+      needs.test-and-build.result == 'success'
+
+    permissions:
+      contents: write     # Required for uploading release assets and updating release notes
+      id-token: write     # Inherited requirement
 
     steps:
       # Checkout repository code

@@ -17,11 +17,12 @@ export default defineConfig({
     // Include all test files
     include: ['tests/**/*.test.ts'],
 
-    // Exclude integration tests by default (they require live API)
+    // Exclude integration tests that require live API, but allow utils unit tests
     exclude: [
       '**/node_modules/**',
       '**/dist/**',
-      'tests/integration/**',
+      'tests/integration/jwt/**',
+      'tests/integration/sessions/**',
     ],
 
     // Coverage configuration
