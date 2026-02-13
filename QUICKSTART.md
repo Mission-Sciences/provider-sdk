@@ -135,6 +135,7 @@ Copy your JWT and paste it at https://jwt.io to see the decoded claims:
   "applicationId": "app_test_123",
   "userId": "user_test_456",
   "orgId": "org_test_789",
+  "email": "user_test_456@example.com",
   "startTime": 1730000000,
   "durationMinutes": 60,
   "exp": 1730003600,
@@ -143,6 +144,8 @@ Copy your JWT and paste it at https://jwt.io to see the decoded claims:
   "sub": "user_test_456"
 }
 ```
+
+> **Note:** `email` is optional and may not be present in all JWTs.
 
 ---
 

@@ -83,7 +83,7 @@ await sdk.initialize();
 Marketplace --> JWT in URL --> SDK validates via JWKS --> Lifecycle hooks fire --> Session active
 ```
 
-1. User launches your app from the marketplace with `?jwt=<token>` in the URL
+1. User launches your app from the marketplace with `?gwSession=<token>` in the URL (parameter name configurable via `jwtParamName`)
 2. SDK extracts the JWT and verifies it against the JWKS endpoint (RS256)
 3. `hooks.onSessionStart` fires with the validated session context
 4. Session timer starts counting down
@@ -252,6 +252,7 @@ See [examples/auth-integration/README.md](./examples/auth-integration/README.md)
 interface SDKConfig {
   // JWT & Validation
   jwksUri?: string;                   // JWKS endpoint (default: GW production endpoint)
+  jwtParamName?: string;              // URL query parameter name (default: 'gwSession')
   applicationId?: string;             // Your application ID
   useBackendValidation?: boolean;     // Use backend instead of JWKS (default: false)
 
@@ -399,6 +400,8 @@ export type {
 }
 ```
 
+> **Note:** `email` is optional. It is included when available from the user's identity provider but may not be present in all JWTs. Always check for its presence before using it.
+
 ## Testing
 
 ### Generate Test JWT
@@ -415,7 +418,7 @@ npm run test-server       # Start dev server at localhost:3000
 npm run test-server-p2    # Phase 2 dev server with heartbeat/tab-sync
 ```
 
-Open: `http://localhost:3000?jwt=<YOUR_JWT>`
+Open: `http://localhost:3000?gwSession=<YOUR_JWT>`
 
 ### Unit Tests
 
@@ -487,7 +490,7 @@ npm view @mission_sciences/provider-sdk --json | jq .dist
 
 ## Troubleshooting
 
-**"No jwt token found in URL or storage"** -- The SDK looks for `?jwt=<token>` in the URL. Make sure the marketplace redirect includes the JWT parameter.
+**"No token found in URL parameter 'gwSession' or storage"** -- The SDK looks for the JWT in the URL query parameter configured via `jwtParamName` (default: `gwSession`). Make sure the marketplace redirect includes the JWT as `?gwSession=<token>` (or your custom parameter name).
 
 **JWT validation failed** -- Check that `jwksUri` points to the correct JWKS endpoint and that the JWT hasn't expired.
 

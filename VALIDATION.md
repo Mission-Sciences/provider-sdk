@@ -183,7 +183,7 @@ npm run test-server
 npm run generate-jwt -- 60  # 60-minute session
 
 # Output will show a URL like:
-# http://localhost:3000?jwt=eyJhbGciOiJSUzI1NiIs...
+# http://localhost:3000?gwSession=eyJhbGciOiJSUzI1NiIs...
 ```
 
 **Manual Validation Steps:**
@@ -233,7 +233,7 @@ If visual testing is required, use Chrome DevTools MCP:
 ```typescript
 // Navigate to test server
 await mcp__chrome-devtools__navigate_page({
-  url: "http://localhost:3000?jwt=<generated-jwt>"
+  url: "http://localhost:3000?gwSession=<generated-jwt>"
 });
 
 // Take snapshot of SDK state

@@ -46,6 +46,7 @@ const claims = {
   applicationId: 'app_test_123',
   userId: 'user_test_456',
   orgId: 'org_test_789',
+  email: 'user_test_456@example.com',
   startTime: now,
   durationMinutes: durationMinutes,
 };

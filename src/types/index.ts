@@ -4,6 +4,8 @@
 export interface SDKConfig {
   /** JWKS endpoint URL (default: https://api.generalwisdom.com/.well-known/jwks.json) */
   jwksUri?: string;
+  /** URL query parameter name containing the JWT (default: 'gwSession') */
+  jwtParamName?: string;
   /** API endpoint for backend integration (Phase 2) */
   apiEndpoint?: string;
   /** Enable debug logging */

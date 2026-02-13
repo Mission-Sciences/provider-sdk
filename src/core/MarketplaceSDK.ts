@@ -32,6 +32,7 @@ export class MarketplaceSDK {
   constructor(config: SDKConfig) {
     this.config = {
       jwksUri: config.jwksUri || 'https://api.generalwisdom.com/.well-known/jwks.json',
+      jwtParamName: config.jwtParamName || 'gwSession',
       apiEndpoint: config.apiEndpoint || 'http://localhost:3000',
       debug: config.debug ?? false,
       autoStart: config.autoStart ?? true,
@@ -56,6 +57,7 @@ export class MarketplaceSDK {
 
     this.logger.info('SDK initialized with config:', {
       jwksUri: this.config.jwksUri,
+      jwtParamName: this.config.jwtParamName,
       apiEndpoint: this.config.apiEndpoint,
       enableHeartbeat: this.config.enableHeartbeat,
       enableTabSync: this.config.enableTabSync,
@@ -134,7 +136,7 @@ export class MarketplaceSDK {
       const JWT_STORAGE_KEY = 'gw_marketplace_jwt';
 
       // First try URL parameter
-      this.jwtToken = extractTokenFromURL('jwt');
+      this.jwtToken = extractTokenFromURL(this.config.jwtParamName);
 
       // If not in URL, try storage (for persistence through OAuth redirects)
       if (!this.jwtToken && typeof sessionStorage !== 'undefined') {
@@ -147,7 +149,7 @@ export class MarketplaceSDK {
       // Still no token? Error out
       if (!this.jwtToken) {
         throw new SDKError(
-          'No jwt token found in URL or storage',
+          `No token found in URL parameter '${this.config.jwtParamName}' or storage`,
           'MISSING_TOKEN'
         );
       }

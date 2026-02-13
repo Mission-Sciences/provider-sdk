@@ -64,6 +64,7 @@ This document specifies the JWT (JSON Web Token) implementation for application 
   "applicationId": "app-123",
   "userId": "user-456",
   "orgId": "org-789",
+  "email": "user@example.com",
   "startTime": 1705320000,
   "durationMinutes": 60,
   "iat": 1705320000,
@@ -73,11 +74,14 @@ This document specifies the JWT (JSON Web Token) implementation for application 
 }
 ```
 
+> **Note:** `email` is optional and may not be present in all JWTs. Application providers should handle its absence gracefully.
+
 **Custom Claims:**
 - `sessionId` (string): Unique session UUID
 - `applicationId` (string): Application ID
 - `userId` (string): General Wisdom user ID
 - `orgId` (string): Organization ID
+- `email` (string, optional): User email address, included when available from the identity provider
 - `startTime` (integer): Unix timestamp (seconds) when session started
 - `durationMinutes` (integer): Purchased duration (60, 120, 1440, etc.)
 
@@ -187,6 +191,7 @@ type SessionClaims struct {
     ApplicationID   string `json:"applicationId"`
     UserID          string `json:"userId"`
     OrgID           string `json:"orgId"`
+    Email           string `json:"email,omitempty"` // Optional: included when available
     StartTime       int64  `json:"startTime"`
     DurationMinutes int    `json:"durationMinutes"`
     jwt.RegisteredClaims
@@ -248,6 +253,8 @@ func GenerateJWT(session *ApplicationSession) (string, error) {
 {application.applicationUrl}?gwSession={session.jwt}
 ```
 
+> The query parameter name defaults to `gwSession` but is configurable via the SDK's `jwtParamName` option.
+
 ---
 
 ## JWT Validation (Application Provider Side)
@@ -285,7 +292,7 @@ func GenerateJWT(session *ApplicationSession) (string, error) {
 **1. Extract JWT from URL**
 ```javascript
 const urlParams = new URLSearchParams(window.location.search);
-const token = urlParams.get('gwSession');
+const token = urlParams.get('gwSession');  // Configurable via SDK's jwtParamName option
 
 if (!token) {
   return res.status(401).json({ error: 'Missing session token' });
@@ -692,6 +699,8 @@ SessionExpirationBacklog:
 ---
 
 ## JWT Utility Functions (TypeScript/Node.js)
+
+> **Context:** The following utility functions originate from the [gw-jwt-demo](../gw-jwt-demo) project, which tests the SDK against multiple identity providers (Auth0, Okta, Azure AD, Cognito, Keycloak). Some functions reference provider-specific claim names (e.g., `cognito:username`, `cognito:groups`) that are not part of the GW marketplace JWT specification above. They are included here as reference implementations for application providers.
 
 The General Wisdom platform provides a comprehensive set of JWT utility functions for token validation and claims extraction. These functions are used in end-to-end tests and can serve as reference implementations for application providers.
 

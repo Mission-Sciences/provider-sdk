@@ -150,7 +150,7 @@ import MarketplaceSDK from '@mission_sciences/provider-sdk';
 
 // Initialize SDK
 const sdk = new MarketplaceSDK({
-  jwtParamName: 'jwt',  // URL parameter name
+  jwtParamName: 'gwSession',  // URL parameter name (default)
   applicationId: 'your-app-id',
   jwksUrl: 'https://api.generalwisdom.com/.well-known/jwks.json',
   onSessionStart: async (context) => {
@@ -189,7 +189,7 @@ sessionHeader.mount('#gw-session-header');
 npm run generate-jwt 60  # 60-minute session
 
 # Open your app with JWT
-http://localhost:3000/app?jwt=eyJhbGciOiJSUzI1NiIsImtpZCI6...
+http://localhost:3000/app?gwSession=eyJhbGciOiJSUzI1NiIsImtpZCI6...
 ```
 
 ---
@@ -215,6 +215,8 @@ The marketplace JWT contains:
   "iat": 1763599337
 }
 ```
+
+> **Note:** `email` is optional. It is included when available from the user's identity provider but may not be present in all JWTs. Always check for its presence before using it.
 
 ### Session Lifecycle
 
@@ -261,7 +263,7 @@ import MarketplaceSDK from '@mission_sciences/provider-sdk';
 
 // Initialize SDK
 const sdk = new MarketplaceSDK({
-  jwtParamName: 'jwt',
+  jwtParamName: 'gwSession',
   applicationId: 'my-vanilla-app',
   jwksUrl: 'https://api.generalwisdom.com/.well-known/jwks.json',
   
@@ -357,7 +359,7 @@ export function useMarketplaceSession() {
   useEffect(() => {
     const initSDK = async () => {
       const marketplaceSDK = new MarketplaceSDK({
-        jwtParamName: 'jwt',
+        jwtParamName: 'gwSession',
         applicationId: 'my-react-app',
         jwksUrl: 'https://api.generalwisdom.com/.well-known/jwks.json',
         
@@ -508,7 +510,7 @@ export function useMarketplaceSession() {
 
   onMounted(async () => {
     const marketplaceSDK = new MarketplaceSDK({
-      jwtParamName: 'jwt',
+      jwtParamName: 'gwSession',
       applicationId: 'my-vue-app',
       jwksUrl: 'https://api.generalwisdom.com/.well-known/jwks.json',
       
@@ -584,7 +586,7 @@ import MarketplaceSDK from '@mission_sciences/provider-sdk';
 
 // Initialize SDK in background
 const sdk = new MarketplaceSDK({
-  jwtParamName: 'jwt',
+  jwtParamName: 'gwSession',
   applicationId: 'my-chrome-extension',
   jwksUrl: 'https://api.generalwisdom.com/.well-known/jwks.json',
   
@@ -1591,7 +1593,7 @@ describe('MarketplaceSDK', () => {
   
   beforeEach(() => {
     sdk = new MarketplaceSDK({
-      jwtParamName: 'jwt',
+      jwtParamName: 'gwSession',
       applicationId: 'test-app',
       jwksUrl: 'https://test.example.com/.well-known/jwks.json',
       onSessionStart: async () => {},
@@ -1604,12 +1606,12 @@ describe('MarketplaceSDK', () => {
   });
   
   it('detects JWT in URL', () => {
-    window.location.href = 'http://test.com?jwt=test-token';
+    window.location.href = 'http://test.com?gwSession=test-token';
     expect(sdk.hasJWTInURL()).toBe(true);
   });
   
   it('extracts JWT from URL', () => {
-    window.location.href = 'http://test.com?jwt=test-token';
+    window.location.href = 'http://test.com?gwSession=test-token';
     expect(sdk.getJWTFromURL()).toBe('test-token');
   });
 });
@@ -1629,7 +1631,7 @@ describe('Session Flow', () => {
     let sessionEnded = false;
     
     const sdk = new MarketplaceSDK({
-      jwtParamName: 'jwt',
+      jwtParamName: 'gwSession',
       applicationId: 'test-app',
       jwksUrl: 'https://test.example.com/.well-known/jwks.json',
       
@@ -1645,7 +1647,7 @@ describe('Session Flow', () => {
     });
     
     // Set test JWT in URL
-    window.location.href = 'http://test.com?jwt=' + generateTestJWT();
+    window.location.href = 'http://test.com?gwSession=' + generateTestJWT();
     
     // Initialize
     await sdk.initialize();
@@ -1702,7 +1704,7 @@ test('marketplace session flow', async ({ page }) => {
   const jwt = generateTestJWT({ durationMinutes: 5 });
   
   // Navigate with JWT
-  await page.goto(`http://localhost:3000?jwt=${jwt}`);
+  await page.goto(`http://localhost:3000?gwSession=${jwt}`);
   
   // Wait for session to start
   await expect(page.locator('.session-timer')).toBeVisible();
@@ -1998,7 +2000,7 @@ new MarketplaceSDK(options: SDKOptions)
 ```typescript
 interface SDKOptions {
   // Required
-  jwtParamName: string;              // URL parameter name for JWT
+  jwtParamName?: string;             // URL parameter name for JWT (default: 'gwSession')
   applicationId: string;             // Your registered app ID
   jwksUrl: string;                   // JWKS endpoint URL
   onSessionStart: (context: SessionStartContext) => Promise<void>;
