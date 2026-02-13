@@ -17,7 +17,6 @@ npm install @mission_sciences/provider-sdk
 import { MarketplaceSDK } from '@mission_sciences/provider-sdk';
 
 const sdk = new MarketplaceSDK({
-  jwksUri: 'https://api.generalwisdom.com/.well-known/jwks.json',
   applicationId: 'your-app-id',
   autoStart: true,
   hooks: {
@@ -478,7 +477,6 @@ npm view @mission_sciences/provider-sdk --json | jq .dist
 
 ## Production Checklist
 
-- [ ] Set `jwksUri` to production JWKS endpoint
 - [ ] Set correct `applicationId`
 - [ ] Set `hookTimeoutMs` appropriately for your auth provider latency
 - [ ] Enable HTTPS on all endpoints

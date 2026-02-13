@@ -152,7 +152,6 @@ import MarketplaceSDK from '@mission_sciences/provider-sdk';
 const sdk = new MarketplaceSDK({
   jwtParamName: 'gwSession',  // URL parameter name (default)
   applicationId: 'your-app-id',
-  jwksUrl: 'https://api.generalwisdom.com/.well-known/jwks.json',
   onSessionStart: async (context) => {
     console.log('Session started for user:', context.userId);
     // Your auth logic here
@@ -265,8 +264,7 @@ import MarketplaceSDK from '@mission_sciences/provider-sdk';
 const sdk = new MarketplaceSDK({
   jwtParamName: 'gwSession',
   applicationId: 'my-vanilla-app',
-  jwksUrl: 'https://api.generalwisdom.com/.well-known/jwks.json',
-  
+
   onSessionStart: async (context) => {
     // Store user info in localStorage
     localStorage.setItem('marketplace_user', JSON.stringify({
@@ -361,8 +359,6 @@ export function useMarketplaceSession() {
       const marketplaceSDK = new MarketplaceSDK({
         jwtParamName: 'gwSession',
         applicationId: 'my-react-app',
-        jwksUrl: 'https://api.generalwisdom.com/.well-known/jwks.json',
-        
         onSessionStart: async (context: SessionStartContext) => {
           console.log('[Marketplace] Session started', context);
           
@@ -512,8 +508,6 @@ export function useMarketplaceSession() {
     const marketplaceSDK = new MarketplaceSDK({
       jwtParamName: 'gwSession',
       applicationId: 'my-vue-app',
-      jwksUrl: 'https://api.generalwisdom.com/.well-known/jwks.json',
-      
       onSessionStart: async (context: SessionStartContext) => {
         session.value = {
           isActive: true,
@@ -588,8 +582,6 @@ import MarketplaceSDK from '@mission_sciences/provider-sdk';
 const sdk = new MarketplaceSDK({
   jwtParamName: 'gwSession',
   applicationId: 'my-chrome-extension',
-  jwksUrl: 'https://api.generalwisdom.com/.well-known/jwks.json',
-  
   onSessionStart: async (context) => {
     // Store in chrome.storage
     await chrome.storage.local.set({
@@ -1471,7 +1463,7 @@ def validate_jwt():
     try:
         # Validate with marketplace API
         response = requests.post(
-            'https://api.generalwisdom.com/validate-session',
+            'https://api.platform.generalwisdom.com/validate-session',
             headers={'Authorization': f'Bearer {jwt_token}'}
         )
         
@@ -1739,9 +1731,6 @@ test('marketplace session flow', async ({ page }) => {
 
 **Solutions**:
 ```typescript
-// Check JWKS URL is correct
-jwksUrl: 'https://api.generalwisdom.com/.well-known/jwks.json',
-
 // Verify applicationId matches JWT claim
 applicationId: 'your-registered-app-id',
 
@@ -1884,7 +1873,6 @@ const sdk = new MarketplaceSDK({
 
 ### Checklist
 
-- [ ] Replace test JWKS URL with production
 - [ ] Update `applicationId` to registered value
 - [ ] Enable HTTPS for all endpoints
 - [ ] Configure proper CORS headers
@@ -1916,7 +1904,6 @@ const config = {
 **Production**:
 ```typescript
 const config = {
-  jwksUrl: 'https://api.generalwisdom.com/.well-known/jwks.json',
   applicationId: process.env.MARKETPLACE_APP_ID,
   marketplaceUrl: 'https://marketplace.generalwisdom.com',
   debug: false,

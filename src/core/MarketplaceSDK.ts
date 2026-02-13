@@ -31,16 +31,17 @@ export class MarketplaceSDK {
 
   constructor(config: SDKConfig) {
     this.config = {
-      jwksUri: config.jwksUri || 'https://api.generalwisdom.com/.well-known/jwks.json',
+      jwksUri: config.jwksUri || 'https://api.platform.generalwisdom.com/.well-known/jwks.json',
       jwtParamName: config.jwtParamName || 'gwSession',
-      apiEndpoint: config.apiEndpoint || 'http://localhost:3000',
+      apiEndpoint: config.apiEndpoint || 'https://api.platform.generalwisdom.com',
+      jwtIssuer: config.jwtIssuer || 'generalwisdom.com',
       debug: config.debug ?? false,
       autoStart: config.autoStart ?? true,
       warningThresholdSeconds: config.warningThresholdSeconds ?? 300,
       customStyles: config.customStyles ?? {},
       themeMode: config.themeMode ?? 'light',
       applicationId: config.applicationId ?? '',
-      marketplaceUrl: config.marketplaceUrl ?? 'https://d3p2yqofgy75sz.cloudfront.net/',
+      marketplaceUrl: config.marketplaceUrl ?? 'https://platform.generalwisdom.com/',
       // Phase 2 options
       enableHeartbeat: config.enableHeartbeat ?? false,
       heartbeatIntervalSeconds: config.heartbeatIntervalSeconds ?? 30,
@@ -173,7 +174,7 @@ export class MarketplaceSDK {
         this.logger.log('Using JWKS validation');
         verifiedClaims = await this.validator.verify(
           this.jwtToken,
-          'generalwisdom.com',
+          this.config.jwtIssuer,
           this.config.applicationId || undefined
         );
       }

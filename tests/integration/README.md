@@ -20,7 +20,7 @@ Edit `.env` with your configuration:
 
 ```env
 # API Configuration
-API_BASE_URL=https://api-dev.generalwisdom.com
+API_BASE_URL=https://api.dev.generalwisdom.com
 
 # AWS Configuration
 AWS_REGION=us-east-1
@@ -77,7 +77,7 @@ aws cognito-idp admin-set-user-password \
 Ensure the Gateway API is deployed and accessible:
 
 ```bash
-curl https://api-dev.generalwisdom.com/health
+curl https://api.dev.generalwisdom.com/health
 ```
 
 ## Running Tests

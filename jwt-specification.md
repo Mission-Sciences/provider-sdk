@@ -261,7 +261,7 @@ func GenerateJWT(session *ApplicationSession) (string, error) {
 
 ### JWKS Endpoint
 
-**Public Endpoint:** `GET https://api.generalwisdom.com/.well-known/jwks.json`
+**Public Endpoint:** `GET https://api.platform.generalwisdom.com/.well-known/jwks.json`
 
 **Response:**
 ```json
@@ -305,7 +305,7 @@ const jwksClient = require('jwks-rsa');
 const jwt = require('jsonwebtoken');
 
 const client = jwksClient({
-  jwksUri: 'https://api.generalwisdom.com/.well-known/jwks.json',
+  jwksUri: 'https://api.platform.generalwisdom.com/.well-known/jwks.json',
   cache: true,
   cacheMaxAge: 3600000  // 1 hour
 });
@@ -393,7 +393,7 @@ const jwksClient = require('jwks-rsa');
 const jwt = require('jsonwebtoken');
 
 class GeneralWisdomSession {
-  constructor(applicationId, jwksUri = 'https://api.generalwisdom.com/.well-known/jwks.json') {
+  constructor(applicationId, jwksUri = 'https://api.platform.generalwisdom.com/.well-known/jwks.json') {
     this.applicationId = applicationId;
     this.client = jwksClient({
       jwksUri: jwksUri,
