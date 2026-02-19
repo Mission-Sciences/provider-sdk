@@ -11,6 +11,14 @@
       "import": "./dist/marketplace-sdk.es.js",
       "require": "./dist/marketplace-sdk.umd.js",
       "types": "./dist/index.d.ts"
+    },
+    "./react": {
+      "import": "./dist/adapters/react/index.js",
+      "types": "./dist/adapters/react/index.d.ts"
+    },
+    "./vue": {
+      "import": "./dist/adapters/vue/index.js",
+      "types": "./dist/adapters/vue/index.d.ts"
     }
   },
   "files": [
@@ -20,7 +28,7 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && vite build --config vite.config.adapters.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -55,6 +63,8 @@
     "@aws-sdk/client-cognito-identity-provider": "^3.931.0",
     "@aws-sdk/client-ssm": "^3.931.0",
     "@types/node": "^20.10.0",
+    "@types/react": "^18.2.0",
+    "vue": "^3.3.0",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
     "@vitest/coverage-v8": "^1.0.0",
@@ -72,10 +82,14 @@
     "jose": "^6.1.0"
   },
   "peerDependencies": {
-    "react": "^18.0.0 || ^19.0.0"
+    "react": "^18.0.0 || ^19.0.0",
+    "vue": "^3.3.0"
   },
   "peerDependenciesMeta": {
     "react": {
+      "optional": true
+    },
+    "vue": {
       "optional": true
     }
   },

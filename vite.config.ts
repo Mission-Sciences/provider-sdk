@@ -1,3 +1,4 @@
+/// <reference types="vitest" />
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import dts from 'vite-plugin-dts';
@@ -12,9 +13,13 @@ export default defineConfig({
     },
     rollupOptions: {
       // jose is browser-compatible, bundle it
-      external: [],
+      // react and vue are optional peer deps - never bundle them
+      external: ['react', 'vue'],
       output: {
-        globals: {},
+        globals: {
+          react: 'React',
+          vue: 'Vue',
+        },
       },
     },
     sourcemap: true,
@@ -31,7 +36,6 @@ export default defineConfig({
   plugins: [
     dts({
       insertTypesEntry: true,
-      rollupTypes: true,
     }),
   ],
   test: {
