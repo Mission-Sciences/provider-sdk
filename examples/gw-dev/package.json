@@ -1,0 +1,12 @@
+{
+  "name": "gw-dev-examples",
+  "private": true,
+  "version": "0.0.1",
+  "scripts": {
+    "install:all": "npm i && cd vanilla && npx serve . -l 3101 --no-clipboard & cd react && npm i && cd ../vue && npm i && cd ../nextjs && npm i",
+    "dev:vanilla": "npx serve vanilla -l 3101 --no-clipboard",
+    "dev:react":   "cd react && npm i && npm run dev",
+    "dev:vue":     "cd vue && npm i && npm run dev",
+    "dev:nextjs":  "cd nextjs && npm i && npm run dev"
+  }
+}

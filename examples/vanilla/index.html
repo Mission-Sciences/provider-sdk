@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GW SDK — Vanilla JS Example</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #1a1f2e;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 32px;
+      max-width: 480px;
+      width: 100%;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 8px; color: #efc139; }
+    .subtitle { color: #94a3b8; font-size: 0.875rem; margin-bottom: 24px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Vanilla JS Example</h1>
+    <p class="subtitle">@mission_sciences/provider-sdk</p>
+  </div>
+
+  <script type="module">
+    import { MarketplaceSDK } from 'https://cdn.jsdelivr.net/npm/@mission_sciences/provider-sdk/dist/marketplace-sdk.es.js';
+
+    const APP_ID  = 'YOUR_APP_ID';
+    const API_KEY = 'YOUR_API_KEY';
+
+    const sdk = new MarketplaceSDK({
+      applicationId:            APP_ID,
+      apiKey:                   API_KEY,
+      environment:              'production',   // 'demo' | 'production'
+      autoStart:                true,
+      themeMode:                'auto',          // 'light' | 'dark' | 'auto'
+      warningThresholdSeconds:  300,            // seconds before expiry warning
+      enableHeartbeat:          false,          // keep-alive ping
+      heartbeatIntervalSeconds: 30,
+      debug:                    false,
+    });
+
+    sdk.initialize().catch(console.error);
+
+    window.addEventListener('beforeunload', () => sdk.destroy());
+  </script>
+</body>
+</html>

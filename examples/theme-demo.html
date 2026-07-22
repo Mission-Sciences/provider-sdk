@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SDK Theme Demo - Light vs Dark</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f5f5;
+      padding: 20px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding: 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .demo-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+
+    .theme-section {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .theme-section.dark {
+      background: #1a1a1a;
+    }
+
+    .theme-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #eee;
+      color: #333;
+    }
+
+    .theme-section.dark .theme-title {
+      color: #fff;
+      border-bottom-color: #333;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    button {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex: 1;
+      min-width: 150px;
+    }
+
+    button:hover {
+      opacity: 0.9;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-show-light {
+      background: hsl(221.2 83.2% 53.3%);
+      color: white;
+    }
+
+    .btn-show-dark {
+      background: hsl(217.2 91.2% 59.8%);
+      color: hsl(222.2 47.4% 11.2%);
+    }
+
+    .info-box {
+      background: #f8f9fa;
+      border-left: 4px solid hsl(221.2 83.2% 53.3%);
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+
+    .theme-section.dark .info-box {
+      background: #2a2a2a;
+      border-left-color: hsl(217.2 91.2% 59.8%);
+      color: #ddd;
+    }
+
+    .color-swatches {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .color-swatch {
+      text-align: center;
+      padding: 10px;
+      border-radius: 8px;
+      font-size: 11px;
+      color: #666;
+    }
+
+    .theme-section.dark .color-swatch {
+      color: #aaa;
+    }
+
+    .swatch-primary {
+      background: hsl(221.2 83.2% 53.3%);
+      color: white;
+    }
+
+    .swatch-destructive {
+      background: hsl(0 84.2% 60.2%);
+      color: white;
+    }
+
+    .swatch-success {
+      background: hsl(142 76% 36%);
+      color: white;
+    }
+
+    .swatch-secondary {
+      background: hsl(210 40% 96.1%);
+      color: hsl(222.2 47.4% 11.2%);
+    }
+
+    .theme-section.dark .swatch-primary {
+      background: hsl(217.2 91.2% 59.8%);
+      color: hsl(222.2 47.4% 11.2%);
+    }
+
+    .theme-section.dark .swatch-destructive {
+      background: hsl(0 62.8% 30.6%);
+      color: white;
+    }
+
+    .theme-section.dark .swatch-success {
+      background: hsl(142 71% 45%);
+      color: white;
+    }
+
+    .theme-section.dark .swatch-secondary {
+      background: hsl(217.2 32.6% 17.5%);
+      color: hsl(210 40% 98%);
+    }
+
+    .feature-list {
+      list-style: none;
+      padding: 0;
+      margin: 15px 0;
+    }
+
+    .feature-list li {
+      padding: 8px 0;
+      padding-left: 25px;
+      position: relative;
+      color: #555;
+    }
+
+    .theme-section.dark .feature-list li {
+      color: #bbb;
+    }
+
+    .feature-list li:before {
+      content: "✓";
+      position: absolute;
+      left: 0;
+      color: hsl(142 76% 36%);
+      font-weight: bold;
+    }
+
+    .theme-section.dark .feature-list li:before {
+      color: hsl(142 71% 45%);
+    }
+
+    @media (max-width: 768px) {
+      .demo-container {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🎨 SDK Theme System Demo</h1>
+    <p class="subtitle">Visual comparison of Light and Dark themes matching the SPA design</p>
+  </div>
+
+  <div class="demo-container">
+    <!-- Light Theme -->
+    <div class="theme-section">
+      <h2 class="theme-title">☀️ Light Theme</h2>
+
+      <div class="info-box">
+        <strong>Configuration:</strong><br>
+        <code>themeMode: 'light'</code>
+      </div>
+
+      <h3 style="margin-top: 20px; margin-bottom: 10px; font-size: 14px;">Color Palette:</h3>
+      <div class="color-swatches">
+        <div class="color-swatch swatch-primary">
+          <strong>Primary</strong><br>
+          Brand Blue
+        </div>
+        <div class="color-swatch swatch-destructive">
+          <strong>Destructive</strong><br>
+          Error Red
+        </div>
+        <div class="color-swatch swatch-success">
+          <strong>Success</strong><br>
+          Action Green
+        </div>
+        <div class="color-swatch swatch-secondary">
+          <strong>Secondary</strong><br>
+          Light Gray
+        </div>
+      </div>
+
+      <h3 style="margin-top: 20px; margin-bottom: 10px; font-size: 14px;">Features:</h3>
+      <ul class="feature-list">
+        <li>High contrast for readability</li>
+        <li>Clean, professional appearance</li>
+        <li>Matches SPA light mode</li>
+        <li>WCAG AA compliant</li>
+      </ul>
+
+      <div class="button-group">
+        <button class="btn-show-light" id="showLightModal">
+          Show Light Modal
+        </button>
+      </div>
+    </div>
+
+    <!-- Dark Theme -->
+    <div class="theme-section dark">
+      <h2 class="theme-title">🌙 Dark Theme</h2>
+
+      <div class="info-box">
+        <strong>Configuration:</strong><br>
+        <code>themeMode: 'dark'</code>
+      </div>
+
+      <h3 style="margin-top: 20px; margin-bottom: 10px; font-size: 14px; color: #fff;">Color Palette:</h3>
+      <div class="color-swatches">
+        <div class="color-swatch swatch-primary">
+          <strong>Primary</strong><br>
+          Brand Blue
+        </div>
+        <div class="color-swatch swatch-destructive">
+          <strong>Destructive</strong><br>
+          Error Red
+        </div>
+        <div class="color-swatch swatch-success">
+          <strong>Success</strong><br>
+          Action Green
+        </div>
+        <div class="color-swatch swatch-secondary">
+          <strong>Secondary</strong><br>
+          Dark Gray
+        </div>
+      </div>
+
+      <h3 style="margin-top: 20px; margin-bottom: 10px; font-size: 14px; color: #fff;">Features:</h3>
+      <ul class="feature-list">
+        <li>Reduced eye strain</li>
+        <li>Better for low-light environments</li>
+        <li>Matches SPA dark mode</li>
+        <li>Modern, sleek appearance</li>
+      </ul>
+
+      <div class="button-group">
+        <button class="btn-show-dark" id="showDarkModal">
+          Show Dark Modal
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="header">
+    <h2 style="font-size: 20px; margin-bottom: 15px;">🔄 Auto Mode</h2>
+    <p class="subtitle" style="margin-bottom: 15px;">
+      Set <code>themeMode: 'auto'</code> to automatically detect system preferences
+    </p>
+    <button class="btn-show-light" id="showAutoModal" style="display: inline-block; min-width: 200px;">
+      Show Auto-Detected Modal
+    </button>
+  </div>
+
+  <script type="module">
+    import { WarningModal } from '../dist/marketplace-sdk.es.js';
+
+    // Create modals with different themes
+    const lightModal = new WarningModal('light');
+    const darkModal = new WarningModal('dark');
+    const autoModal = new WarningModal('auto');
+
+    // Show light modal
+    document.getElementById('showLightModal').addEventListener('click', () => {
+      lightModal.show({
+        remainingSeconds: 180, // 3 minutes
+        onExtend: () => {
+          alert('✅ Extend Session clicked (Light Theme)');
+          lightModal.hide();
+        },
+        onEnd: () => {
+          alert('🛑 End Session clicked (Light Theme)');
+          lightModal.hide();
+        },
+      });
+    });
+
+    // Show dark modal
+    document.getElementById('showDarkModal').addEventListener('click', () => {
+      darkModal.show({
+        remainingSeconds: 180,
+        onExtend: () => {
+          alert('✅ Extend Session clicked (Dark Theme)');
+          darkModal.hide();
+        },
+        onEnd: () => {
+          alert('🛑 End Session clicked (Dark Theme)');
+          darkModal.hide();
+        },
+      });
+    });
+
+    // Show auto modal
+    document.getElementById('showAutoModal').addEventListener('click', () => {
+      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      alert(`🔍 Detected: ${isDark ? 'Dark' : 'Light'} Mode\n(Based on your system settings)`);
+
+      autoModal.show({
+        remainingSeconds: 180,
+        onExtend: () => {
+          alert('✅ Extend Session clicked (Auto Theme)');
+          autoModal.hide();
+        },
+        onEnd: () => {
+          alert('🛑 End Session clicked (Auto Theme)');
+          autoModal.hide();
+        },
+      });
+    });
+  </script>
+</body>
+</html>

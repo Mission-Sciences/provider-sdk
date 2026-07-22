@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GW SDK — Vanilla JS Example</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #1a1f2e;
+      border: 1px solid #2d3748;
+      border-radius: 12px;
+      padding: 32px;
+      max-width: 480px;
+      width: 100%;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 8px; color: #efc139; }
+    .subtitle { color: #94a3b8; font-size: 0.875rem; margin-bottom: 24px; }
+    #status {
+      background: #0d1117;
+      border: 1px solid #2d3748;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: #94a3b8;
+      min-height: 80px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+    .badge-waiting { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+    .badge-loading { background: #1e3a5f; color: #60a5fa; border: 1px solid #2563eb; }
+    .badge-active  { background: #14532d; color: #4ade80; border: 1px solid #16a34a; }
+    .badge-error   { background: #450a0a; color: #f87171; border: 1px solid #dc2626; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Vanilla JS Example</h1>
+    <p class="subtitle">@mission_sciences/provider-sdk · environment: dev</p>
+    <span id="badge" class="badge badge-waiting">Waiting for session…</span>
+    <div id="status">Waiting for ?gwSession= URL parameter…
+
+Launch a test session from the GW setup page to start.</div>
+  </div>
+
+  <script type="module">
+    import { MarketplaceSDK } from '/dist/marketplace-sdk.es.js';
+
+    const APP_ID  = '91108a6a-7f25-4b41-a20c-6a904e49048c';
+    // Get a real key from the GW setup page (Developer → Applications → your app → Setup). Never commit one.
+    const API_KEY = 'YOUR_API_KEY';
+
+    const badge  = document.getElementById('badge');
+    const status = document.getElementById('status');
+
+    function log(msg) {
+      const ts = new Date().toLocaleTimeString();
+      status.textContent = `[${ts}] ${msg}`;
+      console.log('[GW Vanilla]', msg);
+    }
+
+    function setBadge(state, text) {
+      badge.className = `badge badge-${state}`;
+      badge.textContent = text;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    if (!params.has('gwSession')) {
+      log('No ?gwSession= found.\n\nVisit https://dev.generalwisdom.com/developer/applications/\n91108a6a-7f25-4b41-a20c-6a904e49048c/setup\nand launch a test session to land here with a JWT.');
+    } else {
+      setBadge('loading', 'Initializing…');
+      log('?gwSession found — initializing SDK…');
+
+      const sdk = new MarketplaceSDK({
+        applicationId: APP_ID,
+        apiKey: API_KEY,
+        environment: 'dev',
+        autoStart: true,
+        warningThresholdSeconds: 300,
+        debug: true,
+      });
+
+      sdk.initialize()
+        .then(session => {
+          setBadge('active', '● Session active');
+          log(
+            `Session active!\n` +
+            `  sessionId:       ${session.sessionId}\n` +
+            `  durationMinutes: ${session.durationMinutes}\n` +
+            `  isTest:          ${session.isTest ?? 'n/a'}`
+          );
+        })
+        .catch(err => {
+          setBadge('error', 'Error');
+          log(`SDK error: ${err.message}`);
+        });
+
+      window.addEventListener('beforeunload', () => sdk.destroy());
+    }
+  </script>
+</body>
+</html>
